@@ -12,6 +12,7 @@ namespace ItemRecommender
     {
         public string Item;
         public int Target;
+        public bool Optional; // red/boss items on generated pages: shown, but don't block the page
     }
 
     /// <summary>
@@ -38,11 +39,13 @@ namespace ItemRecommender
         float nextRefresh;
         // Icons whose load the game skipped (it does that while a stage is loading); retried on every refresh.
         readonly List<AsyncImage> pendingIcons = new List<AsyncImage>();
-        // Live pages (after page 1): item -> target while it is shown; counts reached goals for the page number.
-        const int LiveSize = 8;
-        readonly Dictionary<string, int> liveTargets = new Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase);
-        int completedGoals;
-        string liveBody;
+        // Generated pages (after page 1): built once from roles + ratings, kept until done.
+        const int GenSize = 8;
+        List<PathStep> genPage;
+        int genNumber = 1;
+        string genBody;
+        readonly HashSet<string> lastPageItems = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        readonly HashSet<string> pageBeforeItems = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
         // Skipping (hotkeys): items are skipped until the next stage, the start page for the whole run.
         readonly HashSet<string> skipped = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
         bool skipStart, onStartPage;
@@ -181,16 +184,17 @@ namespace ItemRecommender
                 return;
             }
 
-            // Page 1 comes from the file (a fixed start). After that every page is live: the best
-            // items for this survivor right now, re-ranked on every refresh with your synergies.
+            // Page 1 comes from the file (a fixed start). After that each page is generated once from
+            // item roles, community ratings and your synergies, and stays until it is done.
             bool german = Plugin.German();
             if (lastRun != Run.instance)
             {
                 lastRun = Run.instance;
                 skipStart = false;
                 skipped.Clear();
-                liveTargets.Clear();
-                completedGoals = 0;
+                genPage = null;
+                genNumber = 1;
+                lastPageItems.Clear();
             }
             if (lastStage != Stage.instance) { lastStage = Stage.instance; skipped.Clear(); } // "maybe later"
 
@@ -200,10 +204,9 @@ namespace ItemRecommender
             bool startDone = skipStart || Complete(body, start);
             onStartPage = !startDone;
             if (!startDone || !Plugin.LivePages.Value) steps = startDone ? pages[pages.Count - 1] : start;
-            else steps = LivePage(body, bodyName, german, pages);
+            else steps = GeneratedPage(body, bodyName, german, pages);
             if (steps == null) steps = pages[pages.Count - 1];
-            else if (startDone && Plugin.LivePages.Value)
-                label += $" {2 + completedGoals / LiveSize} (live)";
+            else if (startDone && Plugin.LivePages.Value) label += $" {genNumber}";
             else if (!startDone) label += " 1";
 
             var counts = new int[steps.Count];
@@ -226,14 +229,19 @@ namespace ItemRecommender
             bool changed = false;
             if (Plugin.SkipItemKey.Value.IsDown() && currentItem != null)
             {
+                // Swap: the item is gone until the next stage, the free slot gets refilled.
                 skipped.Add(currentItem);
-                liveTargets.Remove(currentItem);
+                if (genPage != null) genPage.RemoveAll(st => skipped.Contains(st.Item));
                 changed = true;
             }
             else if (Plugin.SkipPageKey.Value.IsDown())
             {
                 if (onStartPage) skipStart = true;
-                else foreach (var st in shownSteps) { skipped.Add(st.Item); liveTargets.Remove(st.Item); }
+                else if (genPage != null)
+                {
+                    foreach (var st in genPage) { skipped.Add(st.Item); lastPageItems.Add(st.Item); }
+                    genPage = null;
+                }
                 changed = true;
             }
             if (changed) { signature = null; nextRefresh = 0f; }
@@ -241,61 +249,160 @@ namespace ItemRecommender
 
         static bool Complete(CharacterBody body, List<PathStep> steps)
         {
+            // Optional (red/boss) steps don't block - unless the page has nothing else.
+            bool onlyOptional = steps.TrueForAll(st => st.Optional);
             foreach (var st in steps)
-                if (PickerPatches.PlayerCount(body, st.Item) < st.Target) return false;
+                if ((onlyOptional || !st.Optional) && PickerPatches.PlayerCount(body, st.Item) < st.Target) return false;
             return true;
         }
 
         /// <summary>
-        /// Live page: best-rated items for this survivor right now (ratings + synergies with what you
-        /// hold), re-ranked on every refresh. An item keeps its target while it is shown; once reached
-        /// it drops out and the next best item moves in. Items from the survivor's later Path pages
-        /// get a bonus so the hand-made plan still shapes the live pages.
+        /// Builds a page from item roles so it isn't eight damage items: a mix of offense,
+        /// defense/sustain and one utility/mobility slot. Later pages lean on defense + sustain
+        /// (config LatePageFocus). Items are scored by community rating, your survivor's rating,
+        /// synergies with what you hold and the survivor's own Path pages; items from the last
+        /// page are pushed back so pages don't repeat. Red/boss items are optional (max 2).
+        /// The page stays until done; skipped items leave a slot that gets refilled.
         /// </summary>
-        List<PathStep> LivePage(CharacterBody body, string bodyName, bool german, List<List<PathStep>> filePages)
+        List<PathStep> GeneratedPage(CharacterBody body, string bodyName, bool german, List<List<PathStep>> filePages)
         {
-            if (liveBody != bodyName) { liveTargets.Clear(); completedGoals = 0; liveBody = bodyName; }
+            if (genBody != bodyName) { genPage = null; genNumber = 1; genBody = bodyName; lastPageItems.Clear(); pageBeforeItems.Clear(); }
+            if (genPage != null && genPage.Count > 0 && Complete(body, genPage))
+            {
+                pageBeforeItems.Clear();
+                pageBeforeItems.UnionWith(lastPageItems);
+                lastPageItems.Clear();
+                foreach (var st in genPage) lastPageItems.Add(st.Item);
+                genPage = null;
+            }
+            if (genPage != null && genPage.Count >= GenSize) return genPage;
+            if (genPage == null) { genPage = new List<PathStep>(); genNumber++; }
+
             System.Func<string, int> countOf = n => PickerPatches.PlayerCount(body, n);
-
-            var reached = new List<string>();
-            foreach (var kv in liveTargets) if (countOf(kv.Key) >= kv.Value) reached.Add(kv.Key);
-            foreach (var r in reached) { liveTargets.Remove(r); completedGoals++; }
-
             var planned = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             for (int pg = 1; pg < filePages.Count; pg++) foreach (var st in filePages[pg]) planned.Add(st.Item);
-            var picks = new List<KeyValuePair<int, PathStep>>();
-            foreach (var name in Plugin.Data.CandidateItems(bodyName))
+            var onPage = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            foreach (var st in genPage) onPage.Add(st.Item);
+
+            var names = new HashSet<string>(Plugin.Data.CandidateItems(bodyName), System.StringComparer.OrdinalIgnoreCase);
+            names.UnionWith(Roles.Items);
+            var cands = new List<Cand>();
+            foreach (var name in names)
             {
+                if (skipped.Contains(name) || onPage.Contains(name)) continue;
                 var ii = ItemCatalog.FindItemIndex(name);
-                if (ii == ItemIndex.None || skipped.Contains(name)) continue; // items only, equipment doesn't stack
+                if (ii == ItemIndex.None) continue; // items only, equipment doesn't stack
                 var def = ItemCatalog.GetItemDef(ii);
-                if (!def || def.tier == ItemTier.NoTier || def.tier == ItemTier.Lunar) continue;
+                if (!def || def.tier == ItemTier.NoTier || def.tier == ItemTier.Lunar || def.hidden) continue;
                 if (Run.instance && !Run.instance.IsItemAvailable(ii)) continue;
                 var advice = Plugin.Data.Get(bodyName, name, countOf, german);
-                if (advice.Tier < 1) continue;
+                if (advice.Tier < 0) continue; // bad for this survivor or would convert your items
                 int have = countOf(name);
-                int add = def.tier == ItemTier.Tier1 || def.tier == ItemTier.VoidTier1 ? 5
-                        : def.tier == ItemTier.Tier2 || def.tier == ItemTier.VoidTier2 ? 3 : 1;
-                // Higher score first; among equals prefer items you don't have much of yet.
-                int score = advice.Score * 100 + (planned.Contains(name) ? 500 : 0) - Mathf.Min(have, 99);
-                int target = liveTargets.TryGetValue(name, out int t) ? t : have + add;
-                picks.Add(new KeyValuePair<int, PathStep>(score, new PathStep { Item = name, Target = target }));
+                int cap = Roles.Cap(name);
+                if (have >= cap) continue;
+                var info = Roles.Get(name, advice.Tier);
+                bool rare = def.tier == ItemTier.Tier3 || def.tier == ItemTier.Boss ||
+                            def.tier == ItemTier.VoidTier3 || def.tier == ItemTier.VoidBoss;
+                int add = rare ? 1 : def.tier == ItemTier.Tier2 || def.tier == ItemTier.VoidTier2 ? 3 : 5;
+                // Rare items rarely drop, so they only get in when they are clearly better.
+                int score = info.Consensus * 10 + advice.Tier * 8 + advice.SynergyReasons.Count * 5
+                          + (planned.Contains(name) ? 6 : 0) - Mathf.Min(have, 10)
+                          - (rare ? 15 : 0)
+                          - (lastPageItems.Contains(name) ? 20 : pageBeforeItems.Contains(name) ? 10 : 0);
+                cands.Add(new Cand
+                {
+                    Role = info.Role, Rare = rare, Score = score,
+                    Step = new PathStep { Item = name, Target = Mathf.Min(have + add, cap), Optional = rare }
+                });
             }
-            if (picks.Count == 0) return null;
-            picks.Sort((a, b) => b.Key.CompareTo(a.Key));
-            var steps = new List<PathStep>();
-            var shown = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < picks.Count && steps.Count < LiveSize; i++)
+            cands.Sort((a, b) => b.Score.CompareTo(a.Score));
+
+            // Quotas: offense (D/P), defense (F: block/armor/barrier), max health/shield (H: against
+            // one-shots), sustain (S: healing), utility/mobility (U/M).
+            bool late = genNumber >= 3;
+            string focus = (Plugin.LatePageFocus.Value ?? "sustain").ToLowerInvariant();
+            int off, fdef, hp = 1, sus, util = 1;
+            if (focus == "damage") { off = 5; fdef = 1; hp = 0; sus = 1; }
+            else if (focus == "balanced" || !late) { off = 4; fdef = 1; sus = 1; }
+            else { off = 3; fdef = 1; sus = 2; } // more defense + sustain than damage on later pages
+            int rareLeft = 2;
+            var rareRoles = new HashSet<char>();
+            foreach (var st in genPage)
             {
-                steps.Add(picks[i].Value);
-                shown.Add(picks[i].Value.Item);
-                liveTargets[picks[i].Value.Item] = picks[i].Value.Target;
+                char r = Roles.Get(st.Item, 0).Role;
+                if (r == 'D' || r == 'P') off--; else if (r == 'F') fdef--; else if (r == 'H') hp--; else if (r == 'S') sus--; else util--;
+                if (st.Optional) { rareLeft--; rareRoles.Add(r); }
             }
-            // Items that fell out of the top list lose their target (they get a fresh one if they return).
-            var gone = new List<string>();
-            foreach (var k in liveTargets.Keys) if (!shown.Contains(k)) gone.Add(k);
-            foreach (var k in gone) liveTargets.Remove(k);
-            return steps;
+
+            System.Func<System.Func<char, bool>, int, bool> take = (match, n) =>
+            {
+                for (int i = 0; i < cands.Count && n > 0 && genPage.Count < GenSize; i++)
+                {
+                    var c = cands[i];
+                    if (c.Used || !match(c.Role)) continue;
+                    if (c.Rare && (rareLeft <= 0 || rareRoles.Contains(c.Role))) continue;
+                    if (ConflictsWithPage(c.Step.Item)) continue;
+                    c.Used = true;
+                    if (c.Rare) { rareLeft--; rareRoles.Add(c.Role); }
+                    genPage.Add(c.Step);
+                    n--;
+                }
+                return true;
+            };
+            take(r => r == 'F', fdef);
+            take(r => r == 'H', hp);
+            take(r => r == 'S', sus);
+            take(r => r == 'U' || r == 'M', util);
+            take(r => r == 'D' || r == 'P', off);
+            take(r => true, GenSize); // fill up if a role had no candidates
+
+            if (genPage.Count == 0) { genPage = null; return null; }
+            // Show offense first, then defense, so the page reads like a plan.
+            genPage.Sort((a, b) => RoleOrder(Roles.Get(a.Item, 0).Role).CompareTo(RoleOrder(Roles.Get(b.Item, 0).Role)));
+            return genPage;
+        }
+
+        static int RoleOrder(char r) => r == 'D' || r == 'P' ? 0 : r == 'F' || r == 'H' ? 1 : r == 'S' ? 2 : 3;
+
+        // A void item and the normal item it converts never go on the same page.
+        bool ConflictsWithPage(string item)
+        {
+            var partners = VoidPartners(item);
+            foreach (var st in genPage) if (partners.Contains(st.Item)) return true;
+            return false;
+        }
+
+        static Dictionary<string, HashSet<string>> voidPairs;
+        static HashSet<string> VoidPartners(string item)
+        {
+            if (voidPairs == null)
+            {
+                voidPairs = new Dictionary<string, HashSet<string>>(System.StringComparer.OrdinalIgnoreCase);
+                if (DLC1Content.ItemRelationshipTypes.ContagiousItem)
+                    foreach (var pair in ItemCatalog.GetItemPairsForRelationship(DLC1Content.ItemRelationshipTypes.ContagiousItem))
+                    {
+                        if (!pair.itemDef1 || !pair.itemDef2) continue;
+                        Link(pair.itemDef1.name, pair.itemDef2.name);
+                        Link(pair.itemDef2.name, pair.itemDef1.name);
+                    }
+            }
+            return voidPairs.TryGetValue(item, out var set) ? set : Empty;
+        }
+
+        static readonly HashSet<string> Empty = new HashSet<string>();
+        static void Link(string a, string b)
+        {
+            if (!voidPairs.TryGetValue(a, out var set))
+                voidPairs[a] = set = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            set.Add(b);
+        }
+
+        sealed class Cand
+        {
+            public char Role;
+            public bool Rare, Used;
+            public int Score;
+            public PathStep Step;
         }
 
         static List<List<PathStep>> Paginate(List<List<PathStep>> lines)
@@ -419,7 +526,8 @@ namespace ItemRecommender
             }
 
             var count = Ui.MakeText(content, "Count" + index, 9f,
-                done ? new Color(0.45f, 0.95f, 0.45f) : isCurrent ? Palette.Gold : new Color(0.8f, 0.8f, 0.8f));
+                done ? new Color(0.45f, 0.95f, 0.45f) : isCurrent ? Palette.Gold
+                : step.Optional ? new Color(0.55f, 0.75f, 1f) : new Color(0.8f, 0.8f, 0.8f));
             count.alignment = TextAlignmentOptions.Center;
             count.overflowMode = TextOverflowModes.Overflow;
             count.text = $"{Mathf.Min(have, step.Target)}/{step.Target}"; // no check mark: the game font may lack it

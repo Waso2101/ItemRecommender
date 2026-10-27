@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+- Pages after page 1 are generated once and stay until done (no more constant re-ranking, no "live" label)
+- Balanced pages: offense, defense, max health/shield, sustain and utility slots; later pages favour defense + sustain (`LatePageFocus`)
+- Picks use community ratings + survivor ratings + synergies; recent pages are pushed back, void pairs never share a page
+- Red/boss items are optional (don't block a page), max 2 per page
+- F7 now swaps the item: its slot gets refilled
+- README rewritten
+
 ## 0.6.0
 - Skip hotkeys for the build path: F7 = skip item until next stage, F8 = skip page
 - Removed filler items (Medkit, Monster Tooth) from the start pages

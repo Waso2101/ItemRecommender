@@ -18,7 +18,7 @@ namespace ItemRecommender
         public const string Guid = "Waso.ItemRecommender";
         const string OldGuid = "clxru.ItemRecommender"; // until 0.5.0
         public const string Name = "ItemRecommender";
-        public const string Version = "0.6.0";
+        public const string Version = "0.7.0";
 
         internal static Plugin Instance;
         internal static BepInEx.Logging.ManualLogSource Log;
@@ -31,6 +31,7 @@ namespace ItemRecommender
         internal static ConfigEntry<bool> ShowBuildPath;
         internal static ConfigEntry<string> PathSeparator;
         internal static ConfigEntry<bool> LivePages;
+        internal static ConfigEntry<string> LatePageFocus;
         internal static ConfigEntry<KeyboardShortcut> SkipItemKey;
         internal static ConfigEntry<KeyboardShortcut> SkipPageKey;
         internal static ConfigEntry<bool> ShowSkipHint;
@@ -65,7 +66,10 @@ namespace ItemRecommender
             ShowBuildPath = Config.Bind("General", "ShowBuildPath", true,
                 "Show the survivor's build path (the 'Path:' lines in the build file) under the objectives.");
             LivePages = Config.Bind("General", "LivePages", true,
-                "After page 1 of the build path, show live pages: the best items right now from the ratings and your current synergies.");
+                "After page 1 of the build path, generate new pages from item roles, community ratings and your synergies.");
+            LatePageFocus = Config.Bind("Build path", "LatePageFocus", "sustain",
+                new ConfigDescription("What generated pages from page 3 on focus on.",
+                    new AcceptableValueList<string>("sustain", "balanced", "damage")));
             SkipItemKey = Config.Bind("Build path", "SkipItemKey", new KeyboardShortcut(KeyCode.F7),
                 "Skip the highlighted item of the build path until the next stage.");
             SkipPageKey = Config.Bind("Build path", "SkipPageKey", new KeyboardShortcut(KeyCode.F8),
