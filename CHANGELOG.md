@@ -2,7 +2,7 @@
 
 ## 0.5.0
 - Smaller build path icons, more items per page, higher counts
-- Bonus pages: after the last page, new pages are generated from ratings + current synergies
+- Live pages: after page 1, the build path is re-ranked live from ratings + current synergies
 
 ## 0.4.0
 - Build path tile under the objectives, with pages per survivor (early / mid / late run)

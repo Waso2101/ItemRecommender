@@ -29,7 +29,7 @@ namespace ItemRecommender
         internal static ConfigEntry<bool> HideTooltipUntilMouseMoves;
         internal static ConfigEntry<bool> ShowBuildPath;
         internal static ConfigEntry<string> PathSeparator;
-        internal static ConfigEntry<bool> BonusPages;
+        internal static ConfigEntry<bool> LivePages;
         float nextHudCheck;
 
         static readonly HashSet<string> loggedBodies = new HashSet<string>();
@@ -49,8 +49,8 @@ namespace ItemRecommender
                 "Hide that item's description until you move the mouse.");
             ShowBuildPath = Config.Bind("General", "ShowBuildPath", true,
                 "Show the survivor's build path (the 'Path:' lines in the build file) under the objectives.");
-            BonusPages = Config.Bind("General", "BonusPages", true,
-                "When every build path page is done, keep generating pages from the ratings and your current synergies.");
+            LivePages = Config.Bind("General", "LivePages", true,
+                "After page 1 of the build path, show live pages: the best items right now from the ratings and your current synergies.");
             PathSeparator = Config.Bind("General", "PathSeparator", ">", "Symbol drawn between the steps of the build path.");
 
             // The editable copy lives in BepInEx/config so mod updates don't overwrite your changes.

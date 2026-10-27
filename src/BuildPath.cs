@@ -38,10 +38,11 @@ namespace ItemRecommender
         float nextRefresh;
         // Icons whose load the game skipped (it does that while a stage is loading); retried on every refresh.
         readonly List<AsyncImage> pendingIcons = new List<AsyncImage>();
-        // Generated page once every page from the file is done; kept until it is complete too.
-        List<PathStep> bonusSteps;
-        string bonusBody;
-        int bonusRound;
+        // Live pages (after page 1): item -> target while it is shown; counts reached goals for the page number.
+        const int LiveSize = 8;
+        readonly Dictionary<string, int> liveTargets = new Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase);
+        int completedGoals;
+        string liveBody;
 
         /// <summary>Called once per second; creates the tile once the objective panel exists.</summary>
         public static void Ensure(HUD hud)
@@ -172,26 +173,18 @@ namespace ItemRecommender
                 return;
             }
 
-            // Show the first page that isn't finished yet. When all are done, generate bonus pages
-            // from the ratings and your current synergies (or stay on the last page if that's off).
+            // Page 1 comes from the file (a fixed start). After that every page is live: the best
+            // items for this survivor right now, re-ranked on every refresh with your synergies.
             bool german = Plugin.German();
-            int page = -1;
-            for (int pg = 0; pg < pages.Count && page < 0; pg++)
-                if (!Complete(body, pages[pg])) page = pg;
-            List<PathStep> steps;
+            List<PathStep> steps = null;
             string label = german ? "Build-Pfad" : "Build path";
-            if (page >= 0)
-            {
-                steps = pages[page];
-                if (pages.Count > 1) label += $" {page + 1}/{pages.Count}";
-            }
-            else if (Plugin.BonusPages.Value && (steps = BonusPage(body, bodyName, german)) != null)
-                label = (german ? "Bonus-Pfad " : "Bonus path ") + bonusRound;
-            else
-            {
-                steps = pages[pages.Count - 1];
-                if (pages.Count > 1) label += $" {pages.Count}/{pages.Count}";
-            }
+            bool startDone = Complete(body, pages[0]);
+            if (!startDone || !Plugin.LivePages.Value) steps = startDone ? pages[pages.Count - 1] : pages[0];
+            else steps = LivePage(body, bodyName, german, pages);
+            if (steps == null) steps = pages[pages.Count - 1];
+            else if (startDone && Plugin.LivePages.Value)
+                label += $" {2 + completedGoals / LiveSize} (live)";
+            else if (!startDone) label += " 1";
 
             var counts = new int[steps.Count];
             var sig = new StringBuilder(bodyName).Append(german).Append(Plugin.PathSeparator.Value);
@@ -215,14 +208,22 @@ namespace ItemRecommender
         }
 
         /// <summary>
-        /// Best-rated items for this survivor right now (ratings + synergies with what you hold),
-        /// with targets above your current count. Frozen until complete, then a new one is made.
+        /// Live page: best-rated items for this survivor right now (ratings + synergies with what you
+        /// hold), re-ranked on every refresh. An item keeps its target while it is shown; once reached
+        /// it drops out and the next best item moves in. Items from the survivor's later Path pages
+        /// get a bonus so the hand-made plan still shapes the live pages.
         /// </summary>
-        List<PathStep> BonusPage(CharacterBody body, string bodyName, bool german)
+        List<PathStep> LivePage(CharacterBody body, string bodyName, bool german, List<List<PathStep>> filePages)
         {
-            if (bonusSteps != null && bonusBody == bodyName && !Complete(body, bonusSteps)) return bonusSteps;
-
+            if (liveBody != bodyName) { liveTargets.Clear(); completedGoals = 0; liveBody = bodyName; }
             System.Func<string, int> countOf = n => PickerPatches.PlayerCount(body, n);
+
+            var reached = new List<string>();
+            foreach (var kv in liveTargets) if (countOf(kv.Key) >= kv.Value) reached.Add(kv.Key);
+            foreach (var r in reached) { liveTargets.Remove(r); completedGoals++; }
+
+            var planned = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            for (int pg = 1; pg < filePages.Count; pg++) foreach (var st in filePages[pg]) planned.Add(st.Item);
             var picks = new List<KeyValuePair<int, PathStep>>();
             foreach (var name in Plugin.Data.CandidateItems(bodyName))
             {
@@ -237,16 +238,25 @@ namespace ItemRecommender
                 int add = def.tier == ItemTier.Tier1 || def.tier == ItemTier.VoidTier1 ? 5
                         : def.tier == ItemTier.Tier2 || def.tier == ItemTier.VoidTier2 ? 3 : 1;
                 // Higher score first; among equals prefer items you don't have much of yet.
-                int score = advice.Score * 100 - Mathf.Min(have, 99);
-                picks.Add(new KeyValuePair<int, PathStep>(score, new PathStep { Item = name, Target = have + add }));
+                int score = advice.Score * 100 + (planned.Contains(name) ? 500 : 0) - Mathf.Min(have, 99);
+                int target = liveTargets.TryGetValue(name, out int t) ? t : have + add;
+                picks.Add(new KeyValuePair<int, PathStep>(score, new PathStep { Item = name, Target = target }));
             }
             if (picks.Count == 0) return null;
             picks.Sort((a, b) => b.Key.CompareTo(a.Key));
-            bonusSteps = new List<PathStep>();
-            for (int i = 0; i < picks.Count && bonusSteps.Count < PageSize - 2; i++) bonusSteps.Add(picks[i].Value);
-            bonusBody = bodyName;
-            bonusRound++;
-            return bonusSteps;
+            var steps = new List<PathStep>();
+            var shown = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < picks.Count && steps.Count < LiveSize; i++)
+            {
+                steps.Add(picks[i].Value);
+                shown.Add(picks[i].Value.Item);
+                liveTargets[picks[i].Value.Item] = picks[i].Value.Target;
+            }
+            // Items that fell out of the top list lose their target (they get a fresh one if they return).
+            var gone = new List<string>();
+            foreach (var k in liveTargets.Keys) if (!shown.Contains(k)) gone.Add(k);
+            foreach (var k in gone) liveTargets.Remove(k);
+            return steps;
         }
 
         static List<List<PathStep>> Paginate(List<List<PathStep>> lines)
