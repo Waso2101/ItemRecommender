@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+- Smaller build path icons, more items per page, higher counts
+- Bonus pages: after the last page, new pages are generated from ratings + current synergies
+
 ## 0.4.0
 - Build path tile under the objectives, with pages per survivor (early / mid / late run)
 - Tile copies the look of the game's objective panel; icons load via the game's own async image

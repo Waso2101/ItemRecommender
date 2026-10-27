@@ -30,10 +30,12 @@ Path: Syringe x10 > CritGlasses x10 > Missile x2
 ```
 Counts are totals, so a later page can raise an earlier target.
 
+When every page is done, **bonus pages** are generated from the ratings and your current synergies (toggle: `BonusPages`).
+
 ## Other details
 - When the Command menu opens, the cursor sits on an item and the game shows its description right away. The mod hides it until you move the mouse.
 - Holding the void version of an item (e.g. Safer Spaces) makes the normal item a good pick, since it becomes another void stack.
 - Ratings follow the community consensus tier lists (S = core, A = good, rest neutral; only items that actively hurt you get an X), with survivor-specific overrides.
 
 ## Config
-`BepInEx/config/clxru.ItemRecommender.cfg`: `Enabled`, `ShowGoodTier`, `ShowLegend`, `Language` (auto/de/en), `ShowBuildPath`, `PathSeparator`, `HideTooltipUntilMouseMoves` (hides the item description that pops up because the cursor starts on an item, until you move the mouse).
+`BepInEx/config/clxru.ItemRecommender.cfg`: `Enabled`, `ShowGoodTier`, `ShowLegend`, `Language` (auto/de/en), `ShowBuildPath`, `BonusPages`, `PathSeparator`, `HideTooltipUntilMouseMoves` (hides the item description that pops up because the cursor starts on an item, until you move the mouse).

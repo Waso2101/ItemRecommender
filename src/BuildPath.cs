@@ -21,8 +21,8 @@ namespace ItemRecommender
     /// </summary>
     public sealed class PathTile : MonoBehaviour
     {
-        const float Icon = 24f, Sep = 10f, Gap = 2f, Pad = 6f, CountH = 12f, DefaultWidth = 260f;
-        const int PageSize = 8; // longer Path lines are split into pages of this size
+        const float Icon = 20f, Sep = 8f, Gap = 2f, Pad = 6f, CountH = 11f, DefaultWidth = 260f;
+        const int PageSize = 10; // longer Path lines are split into pages of this size
         const string TileName = "ItemRecommenderBuildPath";
         static bool loggedStyle;
 
@@ -38,6 +38,10 @@ namespace ItemRecommender
         float nextRefresh;
         // Icons whose load the game skipped (it does that while a stage is loading); retried on every refresh.
         readonly List<AsyncImage> pendingIcons = new List<AsyncImage>();
+        // Generated page once every page from the file is done; kept until it is complete too.
+        List<PathStep> bonusSteps;
+        string bonusBody;
+        int bonusRound;
 
         /// <summary>Called once per second; creates the tile once the objective panel exists.</summary>
         public static void Ensure(HUD hud)
@@ -168,18 +172,27 @@ namespace ItemRecommender
                 return;
             }
 
-            // Show the first page that isn't finished yet; when everything is done, stay on the last one.
-            int page = pages.Count - 1;
-            for (int pg = 0; pg < pages.Count; pg++)
-            {
-                bool open = false;
-                foreach (var st in pages[pg])
-                    if (PickerPatches.PlayerCount(body, st.Item) < st.Target) { open = true; break; }
-                if (open) { page = pg; break; }
-            }
-            var steps = pages[page];
-
+            // Show the first page that isn't finished yet. When all are done, generate bonus pages
+            // from the ratings and your current synergies (or stay on the last page if that's off).
             bool german = Plugin.German();
+            int page = -1;
+            for (int pg = 0; pg < pages.Count && page < 0; pg++)
+                if (!Complete(body, pages[pg])) page = pg;
+            List<PathStep> steps;
+            string label = german ? "Build-Pfad" : "Build path";
+            if (page >= 0)
+            {
+                steps = pages[page];
+                if (pages.Count > 1) label += $" {page + 1}/{pages.Count}";
+            }
+            else if (Plugin.BonusPages.Value && (steps = BonusPage(body, bodyName, german)) != null)
+                label = (german ? "Bonus-Pfad " : "Bonus path ") + bonusRound;
+            else
+            {
+                steps = pages[pages.Count - 1];
+                if (pages.Count > 1) label += $" {pages.Count}/{pages.Count}";
+            }
+
             var counts = new int[steps.Count];
             var sig = new StringBuilder(bodyName).Append(german).Append(Plugin.PathSeparator.Value);
             for (int i = 0; i < steps.Count; i++)
@@ -188,10 +201,52 @@ namespace ItemRecommender
                 sig.Append('|').Append(steps[i].Item).Append(steps[i].Target).Append(':').Append(counts[i]);
             }
             float width = inLayoutGroup && objective && objective.rect.width > 100f ? objective.rect.width : DefaultWidth;
-            sig.Append(width).Append('#').Append(page).Append('/').Append(pages.Count);
+            sig.Append(width).Append('#').Append(label);
             if (sig.ToString() == signature) return;
             signature = sig.ToString();
-            Rebuild(steps, counts, width, german, page, pages.Count);
+            Rebuild(steps, counts, width, german, label);
+        }
+
+        static bool Complete(CharacterBody body, List<PathStep> steps)
+        {
+            foreach (var st in steps)
+                if (PickerPatches.PlayerCount(body, st.Item) < st.Target) return false;
+            return true;
+        }
+
+        /// <summary>
+        /// Best-rated items for this survivor right now (ratings + synergies with what you hold),
+        /// with targets above your current count. Frozen until complete, then a new one is made.
+        /// </summary>
+        List<PathStep> BonusPage(CharacterBody body, string bodyName, bool german)
+        {
+            if (bonusSteps != null && bonusBody == bodyName && !Complete(body, bonusSteps)) return bonusSteps;
+
+            System.Func<string, int> countOf = n => PickerPatches.PlayerCount(body, n);
+            var picks = new List<KeyValuePair<int, PathStep>>();
+            foreach (var name in Plugin.Data.CandidateItems(bodyName))
+            {
+                var ii = ItemCatalog.FindItemIndex(name);
+                if (ii == ItemIndex.None) continue; // items only, equipment doesn't stack
+                var def = ItemCatalog.GetItemDef(ii);
+                if (!def || def.tier == ItemTier.NoTier || def.tier == ItemTier.Lunar) continue;
+                if (Run.instance && !Run.instance.IsItemAvailable(ii)) continue;
+                var advice = Plugin.Data.Get(bodyName, name, countOf, german);
+                if (advice.Tier < 1) continue;
+                int have = countOf(name);
+                int add = def.tier == ItemTier.Tier1 || def.tier == ItemTier.VoidTier1 ? 5
+                        : def.tier == ItemTier.Tier2 || def.tier == ItemTier.VoidTier2 ? 3 : 1;
+                // Higher score first; among equals prefer items you don't have much of yet.
+                int score = advice.Score * 100 - Mathf.Min(have, 99);
+                picks.Add(new KeyValuePair<int, PathStep>(score, new PathStep { Item = name, Target = have + add }));
+            }
+            if (picks.Count == 0) return null;
+            picks.Sort((a, b) => b.Key.CompareTo(a.Key));
+            bonusSteps = new List<PathStep>();
+            for (int i = 0; i < picks.Count && bonusSteps.Count < PageSize - 2; i++) bonusSteps.Add(picks[i].Value);
+            bonusBody = bodyName;
+            bonusRound++;
+            return bonusSteps;
         }
 
         static List<List<PathStep>> Paginate(List<List<PathStep>> lines)
@@ -204,7 +259,7 @@ namespace ItemRecommender
             return pages;
         }
 
-        void Rebuild(List<PathStep> steps, int[] counts, float width, bool german, int page, int pageCount)
+        void Rebuild(List<PathStep> steps, int[] counts, float width, bool german, string label)
         {
             for (int i = content.childCount - 1; i >= 0; i--) Destroy(content.GetChild(i).gameObject);
             pendingIcons.Clear();
@@ -215,11 +270,9 @@ namespace ItemRecommender
 
             var title = MakeTitle();
             Ui.Fixed(title.rectTransform, new Vector2(Pad, -Pad), new Vector2(width - Pad * 2, titleH));
-            string name = german ? "Build-Pfad" : "Build path";
-            string pageText = pageCount > 1 ? $" {page + 1}/{pageCount}" : "";
             title.text = current < 0
-                ? $"{name}{pageText}: {(german ? "fertig!" : "done!")}"
-                : $"{name}{pageText}:";
+                ? $"{label}: {(german ? "fertig!" : "done!")}"
+                : $"{label}:";
 
             // Lay out steps in rows, then centre each row like the rest of the panel.
             float rowH = Icon + CountH;
@@ -239,7 +292,7 @@ namespace ItemRecommender
                     }
                     else
                     {
-                        var sep = Ui.MakeText(content, "Sep" + i, 13f, new Color(0.75f, 0.75f, 0.75f));
+                        var sep = Ui.MakeText(content, "Sep" + i, 11f, new Color(0.75f, 0.75f, 0.75f));
                         sep.alignment = TextAlignmentOptions.Center;
                         sep.overflowMode = TextOverflowModes.Overflow;
                         sep.text = Plugin.PathSeparator.Value;
@@ -304,12 +357,12 @@ namespace ItemRecommender
                 row.Add(frame.rectTransform);
             }
 
-            var count = Ui.MakeText(content, "Count" + index, 10f,
+            var count = Ui.MakeText(content, "Count" + index, 9f,
                 done ? new Color(0.45f, 0.95f, 0.45f) : isCurrent ? Palette.Gold : new Color(0.8f, 0.8f, 0.8f));
             count.alignment = TextAlignmentOptions.Center;
             count.overflowMode = TextOverflowModes.Overflow;
             count.text = $"{Mathf.Min(have, step.Target)}/{step.Target}"; // no check mark: the game font may lack it
-            Ui.Fixed(count.rectTransform, new Vector2(x - 5f, y - Icon), new Vector2(Icon + 10f, CountH));
+            Ui.Fixed(count.rectTransform, new Vector2(x - 6f, y - Icon), new Vector2(Icon + 12f, CountH));
             row.Add(count.rectTransform);
         }
 

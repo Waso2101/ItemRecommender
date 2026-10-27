@@ -169,6 +169,16 @@ namespace ItemRecommender
             return paths.TryGetValue(DefaultSection, out p) ? p : null;
         }
 
+        /// <summary>Every item the file says something about for this survivor (ratings + synergy targets).</summary>
+        public IEnumerable<string> CandidateItems(string bodyName)
+        {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (sections.TryGetValue(DefaultSection, out var def)) names.UnionWith(def.Keys);
+            if (bodyName != null && sections.TryGetValue(bodyName, out var own)) names.UnionWith(own.Keys);
+            foreach (var r in rules) if (r.Kind > 0) names.Add(r.Want);
+            return names;
+        }
+
         void ParseRule(string[] parts, int lineNo)
         {
             var m = RuleRegex.Match(parts[0]);
