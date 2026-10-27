@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using RoR2.UI;
 using TMPro;
 using UnityEngine;
@@ -187,6 +188,82 @@ namespace ItemRecommender
             var parent = (RectTransform)transform.parent;
             Vector3 topRight = parent.InverseTransformPoint(corners[2]);
             transform.localPosition = new Vector3(topRight.x + 48f, topRight.y + 20f, 0f);
+        }
+    }
+
+    /// <summary>Pick order for the open Command menu, docked above the legend.</summary>
+    public sealed class OrderPanel : MonoBehaviour
+    {
+        const float Width = 300f, RowH = 24f, Pad = 10f;
+        RectTransform anchorRect;
+        HGTextMeshProUGUI title;
+        readonly List<HGTextMeshProUGUI> rows = new List<HGTextMeshProUGUI>();
+
+        public static OrderPanel GetOrCreate(PickupPickerPanel panel)
+        {
+            var existing = panel.transform.Find("ItemRecommenderOrder");
+            if (existing) return existing.GetComponent<OrderPanel>();
+            var go = new GameObject("ItemRecommenderOrder", typeof(RectTransform));
+            go.transform.SetParent(panel.transform, false);
+            go.AddComponent<LayoutElement>().ignoreLayout = true;
+            var o = go.AddComponent<OrderPanel>();
+            o.Build(panel.buttonContainer);
+            return o;
+        }
+
+        void Build(RectTransform anchor)
+        {
+            anchorRect = anchor;
+            var rt = (RectTransform)transform;
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0f, 0f); // grows upwards from the legend's top edge
+            var bg = Ui.MakeImage(transform, "Bg", Sprites.Fill);
+            bg.color = Palette.Panel;
+            bg.preserveAspect = false;
+            Ui.Place(bg.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var border = Ui.MakeImage(transform, "Border", Sprites.Frame);
+            border.type = Image.Type.Sliced;
+            border.preserveAspect = false;
+            border.pixelsPerUnitMultiplier = 2.5f;
+            border.color = new Color(1f, 0.80f, 0.15f, 0.5f);
+            Ui.Place(border.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            title = Ui.MakeText(transform, "Title", 17f, Palette.Gold);
+        }
+
+        public void SetLines(string header, List<string> lines)
+        {
+            while (rows.Count < lines.Count) rows.Add(Ui.MakeText(transform, "Row" + rows.Count, 15f, Color.white));
+            float height = Pad * 2 + RowH * (lines.Count + 1);
+            ((RectTransform)transform).sizeDelta = new Vector2(Width, height);
+            Place(title.rectTransform, 0, height);
+            title.text = header;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                rows[i].gameObject.SetActive(i < lines.Count);
+                if (i >= lines.Count) continue;
+                rows[i].text = lines[i];
+                Place(rows[i].rectTransform, i + 1, height);
+            }
+        }
+
+        static void Place(RectTransform r, int row, float height)
+        {
+            r.anchorMin = new Vector2(0f, 1f);
+            r.anchorMax = new Vector2(1f, 1f);
+            r.pivot = new Vector2(0f, 1f);
+            r.offsetMin = new Vector2(Pad, -Pad - RowH * (row + 1));
+            r.offsetMax = new Vector2(-Pad, -Pad - RowH * row);
+        }
+
+        void LateUpdate()
+        {
+            if (!anchorRect) return;
+            var corners = new Vector3[4];
+            anchorRect.GetWorldCorners(corners);
+            var parent = (RectTransform)transform.parent;
+            Vector3 topRight = parent.InverseTransformPoint(corners[2]);
+            // Legend's top-left sits at (topRight.x + 48, topRight.y + 20); we sit right above it.
+            transform.localPosition = new Vector3(topRight.x + 48f, topRight.y + 28f, 0f);
         }
     }
 

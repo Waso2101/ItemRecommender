@@ -18,7 +18,7 @@ namespace ItemRecommender
         public const string Guid = "Waso.ItemRecommender";
         const string OldGuid = "clxru.ItemRecommender"; // until 0.5.0
         public const string Name = "ItemRecommender";
-        public const string Version = "0.7.0";
+        public const string Version = "0.8.0";
 
         internal static Plugin Instance;
         internal static BepInEx.Logging.ManualLogSource Log;
@@ -35,6 +35,9 @@ namespace ItemRecommender
         internal static ConfigEntry<KeyboardShortcut> SkipItemKey;
         internal static ConfigEntry<KeyboardShortcut> SkipPageKey;
         internal static ConfigEntry<bool> ShowSkipHint;
+        internal static ConfigEntry<KeyboardShortcut> SwitchViewKey;
+        internal static ConfigEntry<int> RarityRowSize;
+        internal static ConfigEntry<bool> ShowMenuOrder;
         float nextHudCheck;
 
         static readonly HashSet<string> loggedBodies = new HashSet<string>();
@@ -74,6 +77,11 @@ namespace ItemRecommender
                 "Skip the highlighted item of the build path until the next stage.");
             SkipPageKey = Config.Bind("Build path", "SkipPageKey", new KeyboardShortcut(KeyCode.F8),
                 "Skip the whole page: page 1 for this run, live items until the next stage.");
+            SwitchViewKey = Config.Bind("Build path", "SwitchViewKey", new KeyboardShortcut(KeyCode.F6),
+                "Switch the tile between the build path and the rarity view (one row white, one row green).");
+            RarityRowSize = Config.Bind("Build path", "RarityRowSize", 5, "Items per row in the rarity view (3-8).");
+            ShowMenuOrder = Config.Bind("General", "ShowMenuOrder", true,
+                "Show the pick order for the items in the open Command menu above the legend.");
             ShowSkipHint = Config.Bind("Build path", "ShowSkipHint", true, "Show the hotkey hint under the build path.");
             PathSeparator = Config.Bind("General", "PathSeparator", ">", "Symbol drawn between the steps of the build path.");
 
@@ -194,6 +202,34 @@ namespace ItemRecommender
                 overlay.Show(advices[i], Plugin.ShowGoodTier.Value, i == best);
                 UpdateTooltip(buttons[i], overlay, advices[i], german, i == best);
             }
+
+            var orderTf = panel.transform.Find("ItemRecommenderOrder");
+            if (active && Plugin.ShowMenuOrder.Value)
+            {
+                // Pick order for exactly the items this menu offers.
+                var ranked = new List<KeyValuePair<int, int>>();
+                for (int i = 0; i < count; i++)
+                {
+                    if (advices[i] == null || advices[i].Tier < 0) continue;
+                    string name = InternalName(PickupCatalog.GetPickupDef(options[i].pickup.pickupIndex));
+                    ranked.Add(new KeyValuePair<int, int>(Roles.Score(name, advices[i], countOf(name)), i));
+                }
+                ranked.Sort((a, b) => b.Key.CompareTo(a.Key));
+                var lines = new List<string>();
+                for (int k = 0; k < ranked.Count && k < 5; k++)
+                {
+                    int i = ranked[k].Value;
+                    string name = InternalName(PickupCatalog.GetPickupDef(options[i].pickup.pickupIndex));
+                    string color = advices[i].Tier >= 2 ? "#FFCC26" : advices[i].Tier == 1 ? "#FFEE8C" : "#DDDDDD";
+                    int have = countOf(name);
+                    lines.Add($"{k + 1}. <color={color}>{BuildData.DisplayName(name)}</color>" +
+                              (have > 0 ? $" <color=#999999>({have}x)</color>" : ""));
+                }
+                var order = OrderPanel.GetOrCreate(panel);
+                order.gameObject.SetActive(lines.Count > 0);
+                order.SetLines(german ? "Reihenfolge" : "Pick order", lines);
+            }
+            else if (orderTf) orderTf.gameObject.SetActive(false);
 
             var legendTf = panel.transform.Find("ItemRecommenderLegend");
             if (active && Plugin.ShowLegend.Value)

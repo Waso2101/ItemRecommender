@@ -17,6 +17,7 @@ Other players do **not** need this mod. German and English (follows the game lan
 - Hover an item to see **why**: what it does, why it is rated like this and what it pairs with.
 - A legend is shown next to the menu.
 - Void items are checked automatically (also modded ones): a void item that would eat your good items is marked red. If you already hold the void version (e.g. Safer Spaces), the normal item becomes a good pick, because it turns into another void stack.
+- **Pick order** above the legend: the best 5 of exactly the items this menu offers, ranked like the build path (rating + survivor + synergies).
 - When the menu opens, the cursor sits on an item and the game would show its description right away. The mod hides it until you move the mouse.
 
 **Ratings** follow the community consensus (six tier lists combined): S = core, A = good, the rest neutral. Only items that actively hurt you (Egocentrism, Purity, …) get an X. Every survivor has its own overrides, e.g. Seeker: Rose Buckler and Little Disciple work during Sojourn.
@@ -37,7 +38,8 @@ A tile under the objectives shows which items to collect next, with icons and yo
   | Utility / mobility | 1 | 1 |
 
   Items are picked by community rating, your survivor's rating, synergies with what you hold and the survivor's own plan. Items from the last two pages are pushed back so pages don't repeat, and a void item never shares a page with the item it converts.
-- **Red and boss items** (blue counter) are optional: they rarely drop, so they don't block the page. Max 2 per page.
+- Only **white and green** items: red and boss items rarely drop, so they are left out.
+- **F6** switches to the **rarity view**: one row of white and one row of green items (5 each), best first – what to take from the next white or green Command menu. Each row always has a defense/health item and a healing item, at most 2 damage items.
 - **F7** swaps the highlighted item: it is gone until the next stage, another item takes its slot. **F8** skips the whole page.
 
 ## Edit the builds
@@ -59,6 +61,9 @@ Path: Syringe x10 > Bear x6 > Hoof x6 > CritGlasses x10
 | `ShowBuildPath` | true | Build path tile |
 | `LivePages` | true | Generate pages after page 1 (off: only the pages from the file) |
 | `LatePageFocus` | sustain | Pages 3+: sustain / balanced / damage |
+| `SwitchViewKey` | F6 | Build path ↔ rarity view |
+| `RarityRowSize` | 5 | Items per row in the rarity view (3–8) |
+| `ShowMenuOrder` | true | Pick order above the legend in the Command menu |
 | `SkipItemKey` / `SkipPageKey` | F7 / F8 | Swap item / skip page |
 | `ShowSkipHint` | true | Hotkey hint under the tile |
 | `PathSeparator` | `>` | Symbol between steps |

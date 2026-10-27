@@ -64,6 +64,43 @@ namespace ItemRecommender
         public static Info Get(string item, int fileTier) =>
             table.TryGetValue(item, out var i) ? i : new Info { Role = 'D', Consensus = fileTier + 1 };
 
+        /// <summary>Community rating + survivor rating + synergies, minus what you already stack.</summary>
+        public static int Score(string item, Advice advice, int have) =>
+            Get(item, advice.Tier).Consensus * 10 + advice.Tier * 8 + advice.SynergyReasons.Count * 5 - System.Math.Min(have, 10);
+
+        static bool Offense(char r) => r == 'D' || r == 'P';
+
+        /// <summary>
+        /// Top items by score as a mixed row: the best defense/max-health item and the best healing
+        /// item are always in, then at most maxOffense damage items and one mobility/utility item.
+        /// Keeps the score order.
+        /// </summary>
+        public static List<T> TopMixed<T>(List<T> sorted, System.Func<T, string> item, int count, int maxOffense)
+        {
+            var picked = new HashSet<int>();
+            System.Func<System.Func<char, bool>, int, int> take = (match, n) =>
+            {
+                for (int i = 0; i < sorted.Count && n > 0 && picked.Count < count; i++)
+                    if (!picked.Contains(i) && match(Get(item(sorted[i]), 0).Role)) { picked.Add(i); n--; }
+                return n;
+            };
+            take(r => r == 'F' || r == 'H', 1);
+            take(r => r == 'S', 1);
+            int offense = 0, other = 0;
+            for (int i = 0; i < sorted.Count && picked.Count < count; i++)
+            {
+                if (picked.Contains(i)) continue;
+                char r = Get(item(sorted[i]), 0).Role;
+                if (Offense(r)) { if (offense >= maxOffense) continue; offense++; }
+                else if (r == 'M' || r == 'U') { if (other >= 1) continue; other++; }
+                picked.Add(i);
+            }
+            take(r => true, count); // not enough candidates: fill up
+            var result = new List<T>();
+            for (int i = 0; i < sorted.Count; i++) if (picked.Contains(i)) result.Add(sorted[i]);
+            return result;
+        }
+
         // Stacks beyond this do (almost) nothing.
         public static int Cap(string item) =>
             item.Equals("CritGlasses", System.StringComparison.OrdinalIgnoreCase) ? 10 :

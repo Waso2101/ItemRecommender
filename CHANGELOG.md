@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0
+- Rarity view (F6): one row white, one row green, best first, each row with defense + healing
+- Pick order for the open Command menu, shown above the legend
+- Build path pages only use white and green items
+
 ## 0.7.0
 - Pages after page 1 are generated once and stay until done (no more constant re-ranking, no "live" label)
 - Balanced pages: offense, defense, max health/shield, sustain and utility slots; later pages favour defense + sustain (`LatePageFocus`)

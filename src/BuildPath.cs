@@ -53,6 +53,7 @@ namespace ItemRecommender
         string currentItem;
         Run lastRun;
         Stage lastStage;
+        bool rarityView; // F6: build path <-> one row per rarity (white, green)
 
         /// <summary>Called once per second; creates the tile once the objective panel exists.</summary>
         public static void Ensure(HUD hud)
@@ -198,6 +199,9 @@ namespace ItemRecommender
             }
             if (lastStage != Stage.instance) { lastStage = Stage.instance; skipped.Clear(); } // "maybe later"
 
+            float width = inLayoutGroup && objective && objective.rect.width > 100f ? objective.rect.width : DefaultWidth;
+            if (rarityView) { RefreshRarity(body, bodyName, german, width); return; }
+
             List<PathStep> steps = null;
             string label = german ? "Build-Pfad" : "Build path";
             var start = pages[0].FindAll(st => !skipped.Contains(st.Item));
@@ -216,7 +220,6 @@ namespace ItemRecommender
                 counts[i] = PickerPatches.PlayerCount(body, steps[i].Item);
                 sig.Append('|').Append(steps[i].Item).Append(steps[i].Target).Append(':').Append(counts[i]);
             }
-            float width = inLayoutGroup && objective && objective.rect.width > 100f ? objective.rect.width : DefaultWidth;
             sig.Append(width).Append('#').Append(label);
             if (sig.ToString() == signature) return;
             signature = sig.ToString();
@@ -225,7 +228,15 @@ namespace ItemRecommender
 
         void HandleHotkeys()
         {
-            if (!bg || !bg.enabled || shownSteps == null) return;
+            if (!bg || !bg.enabled) return;
+            if (Plugin.SwitchViewKey.Value.IsDown())
+            {
+                rarityView = !rarityView;
+                signature = null;
+                nextRefresh = 0f;
+                return;
+            }
+            if (rarityView || shownSteps == null) return;
             bool changed = false;
             if (Plugin.SkipItemKey.Value.IsDown() && currentItem != null)
             {
@@ -303,7 +314,8 @@ namespace ItemRecommender
                 var info = Roles.Get(name, advice.Tier);
                 bool rare = def.tier == ItemTier.Tier3 || def.tier == ItemTier.Boss ||
                             def.tier == ItemTier.VoidTier3 || def.tier == ItemTier.VoidBoss;
-                int add = rare ? 1 : def.tier == ItemTier.Tier2 || def.tier == ItemTier.VoidTier2 ? 3 : 5;
+                if (rare) continue; // red/boss items rarely drop - not part of the path
+                int add = def.tier == ItemTier.Tier2 || def.tier == ItemTier.VoidTier2 ? 3 : 5;
                 // Rare items rarely drop, so they only get in when they are clearly better.
                 int score = info.Consensus * 10 + advice.Tier * 8 + advice.SynergyReasons.Count * 5
                           + (planned.Contains(name) ? 6 : 0) - Mathf.Min(have, 10)
@@ -360,6 +372,75 @@ namespace ItemRecommender
             // Show offense first, then defense, so the page reads like a plan.
             genPage.Sort((a, b) => RoleOrder(Roles.Get(a.Item, 0).Role).CompareTo(RoleOrder(Roles.Get(b.Item, 0).Role)));
             return genPage;
+        }
+
+        /// <summary>
+        /// Rarity view: what to take next from a white and from a green Command menu, best first.
+        /// Same scoring as the path; each row has defense, healing and at most n-3 damage items.
+        /// </summary>
+        void RefreshRarity(CharacterBody body, string bodyName, bool german, float width)
+        {
+            shownSteps = null;
+            currentItem = null;
+            System.Func<string, int> countOf = n => PickerPatches.PlayerCount(body, n);
+            var names = new HashSet<string>(Plugin.Data.CandidateItems(bodyName), System.StringComparer.OrdinalIgnoreCase);
+            names.UnionWith(Roles.Items);
+            var white = new List<KeyValuePair<int, string>>();
+            var green = new List<KeyValuePair<int, string>>();
+            foreach (var name in names)
+            {
+                var ii = ItemCatalog.FindItemIndex(name);
+                if (ii == ItemIndex.None) continue;
+                var def = ItemCatalog.GetItemDef(ii);
+                if (!def || def.hidden || (def.tier != ItemTier.Tier1 && def.tier != ItemTier.Tier2)) continue;
+                if (Run.instance && !Run.instance.IsItemAvailable(ii)) continue;
+                var advice = Plugin.Data.Get(bodyName, name, countOf, german);
+                if (advice.Tier < 0) continue;
+                int have = countOf(name);
+                if (have >= Roles.Cap(name)) continue;
+                var entry = new KeyValuePair<int, string>(Roles.Score(name, advice, have), name);
+                (def.tier == ItemTier.Tier1 ? white : green).Add(entry);
+            }
+            white.Sort((a, b) => b.Key.CompareTo(a.Key));
+            green.Sort((a, b) => b.Key.CompareTo(a.Key));
+            int n = Mathf.Clamp(Plugin.RarityRowSize.Value, 3, 8);
+            var rows = new List<List<string>>
+            {
+                Roles.TopMixed(white, kv => kv.Value, n, n - 3).ConvertAll(kv => kv.Value),
+                Roles.TopMixed(green, kv => kv.Value, n, n - 3).ConvertAll(kv => kv.Value),
+            };
+
+            var sig = new StringBuilder("rarity").Append(bodyName).Append(german).Append(width);
+            foreach (var r in rows) foreach (var it in r) sig.Append('|').Append(it).Append(countOf(it));
+            if (sig.ToString() == signature) return;
+            signature = sig.ToString();
+
+            for (int i = content.childCount - 1; i >= 0; i--) Destroy(content.GetChild(i).gameObject);
+            pendingIcons.Clear();
+            var title = MakeTitle();
+            Ui.Fixed(title.rectTransform, new Vector2(Pad, -Pad), new Vector2(width - Pad * 2, titleH));
+            title.text = german ? "Nach Seltenheit:" : "By rarity:";
+
+            float rowH = Icon + CountH, y = -Pad - titleH - 2f, inner = width - Pad * 2;
+            var colors = new[] { new Color(0.92f, 0.92f, 0.92f), new Color(0.47f, 0.86f, 0.35f) };
+            for (int r = 0; r < rows.Count; r++)
+            {
+                var row = new List<RectTransform>();
+                var dot = Ui.MakeImage(content, "Rarity" + r, Sprites.Dot);
+                dot.color = colors[r];
+                Ui.Fixed(dot.rectTransform, new Vector2(0f, y - 4f), new Vector2(10f, 10f));
+                row.Add(dot.rectTransform);
+                float x = 16f;
+                for (int i = 0; i < rows[r].Count; i++)
+                {
+                    var step = new PathStep { Item = rows[r][i], Target = -1 };
+                    Step(step, countOf(step.Item), r * 10 + i, i == 0, x, y, row);
+                    x += Icon + Gap + 4f;
+                }
+                CenterRow(row, x - Gap - 4f, inner);
+                y -= rowH + Gap + 2f;
+            }
+            FinishLayout(width, -y + Pad - Gap - 2f, german);
         }
 
         static int RoleOrder(char r) => r == 'D' || r == 'P' ? 0 : r == 'F' || r == 'H' ? 1 : r == 'S' ? 2 : 3;
@@ -465,14 +546,21 @@ namespace ItemRecommender
             }
             CenterRow(row, rowWidth, inner);
 
-            float height = -y + rowH + Pad;
+            FinishLayout(width, -y + rowH + Pad, german);
+        }
+
+        void FinishLayout(float width, float height, bool german)
+        {
             if (Plugin.ShowSkipHint.Value)
             {
                 var hint = Ui.MakeText(content, "Hint", 9f, new Color(0.6f, 0.6f, 0.6f));
                 hint.alignment = TextAlignmentOptions.Center;
-                hint.text = german
-                    ? $"{Plugin.SkipItemKey.Value}: Item überspringen · {Plugin.SkipPageKey.Value}: Seite überspringen"
-                    : $"{Plugin.SkipItemKey.Value}: skip item · {Plugin.SkipPageKey.Value}: skip page";
+                string view = Plugin.SwitchViewKey.Value.ToString();
+                hint.text = rarityView
+                    ? (german ? $"{view}: Build-Pfad" : $"{view}: build path")
+                    : german
+                        ? $"{view}: Seltenheit · {Plugin.SkipItemKey.Value}: tauschen · {Plugin.SkipPageKey.Value}: Seite"
+                        : $"{view}: rarity · {Plugin.SkipItemKey.Value}: swap · {Plugin.SkipPageKey.Value}: page";
                 Ui.Fixed(hint.rectTransform, new Vector2(Pad, -height + Pad - 2f), new Vector2(width - Pad * 2, 12f));
                 height += 12f;
             }
@@ -506,7 +594,8 @@ namespace ItemRecommender
 
         void Step(PathStep step, int have, int index, bool isCurrent, float x, float y, List<RectTransform> row)
         {
-            bool done = have >= step.Target;
+            bool counter = step.Target < 0; // rarity view: just show how many you have
+            bool done = !counter && have >= step.Target;
             var icon = Ui.MakeImage(content, "Icon" + index, null);
             Ui.Fixed(icon.rectTransform, new Vector2(x, y), new Vector2(Icon, Icon));
             icon.color = done ? new Color(1f, 1f, 1f, 0.45f) : Color.white;
@@ -530,7 +619,7 @@ namespace ItemRecommender
                 : step.Optional ? new Color(0.55f, 0.75f, 1f) : new Color(0.8f, 0.8f, 0.8f));
             count.alignment = TextAlignmentOptions.Center;
             count.overflowMode = TextOverflowModes.Overflow;
-            count.text = $"{Mathf.Min(have, step.Target)}/{step.Target}"; // no check mark: the game font may lack it
+            count.text = counter ? $"{have}x" : $"{Mathf.Min(have, step.Target)}/{step.Target}"; // no check mark: the game font may lack it
             Ui.Fixed(count.rectTransform, new Vector2(x - 6f, y - Icon), new Vector2(Icon + 12f, CountH));
             row.Add(count.rectTransform);
         }
