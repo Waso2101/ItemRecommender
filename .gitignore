@@ -1,0 +1,6 @@
+bin/
+obj/
+package/build/
+package/*.zip
+*.user
+.vs/

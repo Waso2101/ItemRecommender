@@ -1,0 +1,10 @@
+{
+  "name": "ItemRecommender",
+  "author_name": "Waso",
+  "version_number": "0.4.0",
+  "website_url": "https://github.com/Waso2101/ItemRecommender",
+  "description": "Client-side item recommendations in the Command menu: gold frame + star per survivor, proc-chain synergy hints, build path tile in the HUD. Other players don't need it.",
+  "dependencies": [
+    "bbepis-BepInExPack-5.4.2122"
+  ]
+}

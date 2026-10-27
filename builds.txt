@@ -1,0 +1,462 @@
+#@version 9
+# ============================================================================
+#  ItemRecommender – Item-Empfehlungen / item recommendations
+#  Die Datei wird beim Öffnen jedes Command-Menüs neu eingelesen, wenn sie sich
+#  geändert hat. Du kannst sie also während des Spiels bearbeiten.
+#  The file is re-read whenever it changes, so you can edit it mid-run.
+#
+#  Hinweis: Erhöht eine Mod-Version die Zahl in "#@version", wird diese Datei
+#  ersetzt und deine alte Version als .bak gesichert. Eigene Änderungen also
+#  ruhig hier machen, aber bei Updates in der .bak nachschauen.
+#
+#  [Default]            gilt für alle Charaktere / applies to every survivor
+#  [CommandoBody] ...   Charakter-Abschnitt: überschreibt Default
+#                       Mehrere Namen erlaubt: [MageBody, MercBody]
+#
+#  Item | Stufe | Grund (DE) | Reason (EN)
+#     Stufe/tier:  2 = Kern        -> goldener Rahmen + Stern / gold frame + star
+#                  1 = gut         -> heller Rahmen          / light frame
+#                  0 = neutral     -> nichts (auch: Default für diesen Char aufheben)
+#                 -1 = eher nicht  -> oranger Rahmen + X     / orange frame + X
+#                 -2 = nicht bauen -> roter Rahmen + X       / red frame + X
+#
+#  [Synergy]  (Hast du das linke Item, wird das rechte bewertet)
+#  A > B      Synergie: B +1 Stufe, türkiser Punkt     (A <> B = beide Richtungen)
+#  A !> B     Anti-Synergie: B wird "eher nicht" (orange)
+#  A !!> B    Anti-Synergie: B wird "nicht bauen" (rot)
+#
+#  Void-Items werden AUTOMATISCH geprüft: Ein Void-Item, das deine guten Items
+#  umwandeln würde, wird rot markiert – und umgekehrt das normale Item, wenn du
+#  die Void-Version schon hast. Das gilt auch für Void-Items aus anderen Mods.
+#
+#  Build-Pfad / build path (Kachel unter den Zielen / tile under the objectives):
+#  Path: CritGlasses x10 > Syringe x10 > Bear x5
+#     Reihenfolge, in der du die Items sammeln willst; "x10" = Ziel-Anzahl.
+#     Order to collect items in; "x10" = target count. Leeres "Path:" = keine Kachel.
+#     Mehrere "Path:"-Zeilen = mehrere Seiten. Ist eine Seite voll, kommt die nächste.
+#     Several "Path:" lines = several pages. When a page is complete, the next one shows.
+#
+#  Item-Namen = interne Namen (z.B. ChainLightning = Ukulele). Unbekannte
+#  Charaktere/Namen stehen im BepInEx-Log (LogOutput.log).
+# ============================================================================
+
+[Default]
+Path: Syringe x5 > Bear x3 > Hoof x3 > CritGlasses x5 > IgniteOnKill x1 > Missile x1
+Path: Syringe x10 > Bear x5 > CritGlasses x10 > ChainLightning x2 > ExplodeOnDeath x2 > FireRing x1 > IceRing x1
+Path: Missile x3 > HealOnCrit x1 > Feather x2 > Clover x1 > AlienHead x1 > Behemoth x1
+# ---------------------------------------------------------------- Weiß / white
+Syringe          | 2 | +15% Angriffstempo pro Stack. Mehr Angriffe = mehr Schaden UND mehr Procs von allen On-Hit-Items. Stapelt ohne Obergrenze – eins der besten Items im Spiel. | +15% attack speed per stack. More attacks = more damage AND more procs from every on-hit item. No cap – one of the best items in the game.
+CritGlasses      | 1 | Lens-Maker's Glasses: +10% Crit-Chance pro Stack, Crits machen doppelten Schaden. Bei 10 Stacks ist jeder Treffer ein Crit – danach nutzlos. Schaltet Crit-Items frei (Predatory Instincts, Harvester's Scythe, Laser Scope). | +10% crit chance per stack, crits deal double damage. At 10 stacks every hit crits – more is wasted. Enables crit items (Predatory Instincts, Harvester's Scythe, Laser Scope).
+BleedOnHit       | 1 | Tri-Tip Dagger: 10% Chance pro Stack, Gegner bluten zu lassen. Bluten stapelt und ignoriert Rüstung. Mit Angriffstempo und Shatterspleen sehr stark. | 10% chance per stack to make enemies bleed. Bleed stacks and ignores armor. Very strong with attack speed and Shatterspleen.
+Bear             | 2 | Tougher Times: 15% Chance, einen Treffer komplett zu blocken. Skaliert hyperbolisch (nie 100%), hilft aber gegen alles – auch gegen große Boss-Treffer. Bestes Überlebens-Item in Weiß. | 15% chance to block a hit completely. Scales hyperbolically (never 100%) but works against everything, even big boss hits. Best white survival item.
+Hoof             | 2 | Paul's Goat Hoof: +14% Laufgeschwindigkeit. Schneller = weniger getroffen, schneller zwischen Truhen. In der Community S-Tier, weil Bewegung in RoR2 dein bester Schutz ist. | +14% move speed. Faster = hit less often and quicker looting. Community S-tier because movement is your best defense in RoR2.
+SprintBonus      | 1 | Energy Drink: +25% Sprinttempo. Mehr Mobilität zwischen Kämpfen und zum Ausweichen. Gut, aber Paul's Goat Hoof wirkt immer, nicht nur beim Sprinten. | +25% sprint speed. More mobility between fights and for dodging. Good, but Goat Hoof works all the time, not just while sprinting.
+Crowbar          | 1 | Crowbar: +75% Schaden gegen Gegner über 90% Leben. Stark bei großen Einzeltreffern (Bandit, Railgunner, Loader), schwach bei vielen kleinen Treffern. | +75% damage against enemies above 90% health. Strong with big single hits (Bandit, Railgunner, Loader), weak with many small hits.
+BossDamageBonus  | 1 | Armor-Piercing Rounds: +20% Schaden gegen Bosse. Teleporter-Events gehen schneller vorbei – genau da stirbt man am häufigsten. | +20% damage against bosses. Teleporter events end faster – which is where most deaths happen.
+StickyBomb       | 0 | Sticky Bomb: Chance, eine Bombe an Gegner zu kleben. Okayer Extraschaden, löst aber keine weiteren Procs aus. | Chance to stick a bomb on enemies. Okay bonus damage, but doesn't chain into other procs.
+NearbyDamageBonus | 0 | Focus Crystal: +20% Schaden gegen Gegner in deiner Nähe. Gut für Nahkämpfer (Merc, Loader, Acrid), nutzlos auf Distanz. | +20% damage against nearby enemies. Good for melee survivors (Merc, Loader, Acrid), useless at range.
+IgniteOnKill     | 1 | Gasoline: Kills zünden Gegner in der Nähe an. Räumt Gegnergruppen früh im Run sehr schnell, besonders auf Stage 1-3. Fällt später etwas ab. | Kills ignite nearby enemies. Clears groups very fast early in the run, especially stages 1-3. Falls off a bit later.
+Tooth            | 1 | Monster Tooth: Kills lassen eine Heilkugel fallen. Verlässliche Heilung, solange du viel tötest – gut mit Flächenschaden. | Kills drop a healing orb. Reliable healing as long as you kill a lot – good with area damage.
+BarrierOnKill    | 1 | Topaz Brooch: jeder Kill gibt eine kleine Barriere. Verlässlicher Schutz in großen Gegnergruppen. | Each kill gives a small barrier. Reliable protection in big groups of enemies.
+Feather          | 1 | Hopoo Feather: +1 Extra-Sprung pro Stack. Viel Mobilität, hilft beim Ausweichen und Erreichen von Truhen. | +1 extra jump per stack. Lots of mobility, helps dodging and reaching chests.
+ArmorPlate       | 1 | Repulsion Armor Plate: zieht von jedem Treffer einen festen Wert ab. Sehr stark früh gegen viele kleine Treffer, später weniger wichtig. | Subtracts a flat amount from every hit. Very strong early against many small hits, less important later.
+FlatHealth       | 0 | Bison Steak: +25 Max-HP. Einfach, aber schwach – skaliert nicht mit Level. Gut mit Transcendence oder bei Seeker (längeres Sojourn). | +25 max HP. Simple but weak – doesn't scale with level. Good with Transcendence or on Seeker (longer Sojourn).
+AttackSpeedAndMoveSpeed | 1 | Mocha: Angriffstempo und Laufgeschwindigkeit in einem Item. Zwei der wichtigsten Werte gleichzeitig – solide in jedem Build. | Attack speed and move speed in one item. Two of the most important stats at once – solid in every build.
+HealingPotion    | 0 | Power Elixir: heilt einmal viel bei wenig Leben, dann leer bis zur nächsten Stage. Notfallknopf, aber nur einmal. | Heals a lot once at low health, then empty until the next stage. Emergency button, but only once.
+FragileDamageBonus | 0 | Delicate Watch: mehr Schaden, zerbricht aber bei wenig Leben. Riskant – genau wenn es knapp wird, ist es weg. | More damage, but breaks at low health. Risky – it's gone exactly when things get close.
+OutOfCombatArmor | 0 | Oddly-shaped Opal: Rüstung, bis du getroffen wirst. Blockt den ersten Treffer jedes Kampfs ab, danach weg. | Armor until you get hit. Softens the first hit of each fight, then it's gone.
+DelayedDamage    | 0 | Warped Echo: verteilt einen Teil des Schadens über ein paar Sekunden. Verhindert One-Shots, heilt aber nichts. | Spreads part of incoming damage over a few seconds. Prevents one-shots, but doesn't heal.
+AttackSpeedPerNearbyAllyOrEnemy | 0 | Bolstering Lantern: Angriffstempo pro Gegner/Verbündetem in der Nähe. Gut im Nahkampf, sonst eher schwach. | Attack speed per nearby enemy/ally. Good in melee, otherwise rather weak.
+SecondarySkillMagazine | 1 | Backup Magazine: +1 Ladung für deinen Secondary-Skill pro Stack. Stark bei Charakteren mit gutem Secondary (Commando, Huntress, Seeker). | +1 charge of your secondary skill per stack. Strong on survivors with a good secondary (Commando, Huntress, Seeker).
+Medkit           | 1 | Medkit: heilt dich kurz nach jedem erlittenen Treffer. Gleicht kleine Treffer fast komplett aus und ist früh im Run sehr stark. | Heals you shortly after every hit you take. Nearly cancels out small hits and is very strong early in a run.
+Mushroom         | 0 | Bustling Fungus: heilt, wenn du stillstehst. Nur gut für Charaktere, die stehen bleiben (Engineer-Türme, REX). | Heals while you stand still. Only good for survivors who stand still (Engineer turrets, REX).
+StunChanceOnHit  | 0 | Stun Grenade: Chance, Gegner zu betäuben. Betäubung unterbricht Angriffe, Bosse sind aber oft immun. | Chance to stun enemies. Stuns interrupt attacks, but bosses are often immune.
+Firework         | 0 | Bundle of Fireworks: Truhen öffnen schießt Feuerwerk. Kaum Kampfwert, weil es nur beim Öffnen auslöst. | Opening chests fires fireworks. Little combat value because it only triggers on interactions.
+HealWhileSafe    | 0 | Cautious Slug: viel Regeneration außerhalb des Kampfs. Hilft zwischen Kämpfen, aber nicht, wenn es wirklich gefährlich wird. | Lots of regen out of combat. Helps between fights, but not when things get dangerous.
+PersonalShield   | 1 | Personal Shield Generator: Schild in Höhe von 8% deines Lebens, lädt sich außerhalb des Kampfs auf. Schützt vor Chip-Schaden. | Shield worth 8% of your health that recharges out of combat. Protects against chip damage.
+WardOnLevel      | 0 | Warbanner: beim Level-up und Teleporter-Start eine Buff-Zone. Hilft beim Teleporter, sonst selten aktiv. | Buff zone on level-up and teleporter start. Helps at the teleporter, rarely active otherwise.
+SpeedBoostPickup | 0 | Elusive Antlers: Kugeln geben kurz Tempo. Nett, aber unzuverlässig. | Orbs give a short speed boost. Nice, but unreliable.
+TreasureCache    | 1 | Rusted Key: in jeder Stage erscheint eine Lockbox mit einem gratis Item. Mehr Items = stärkerer Run. Kein Kampfwert, aber konstant Wert. | A lockbox with a free item appears every stage. More items = stronger run. No combat value, but steady value.
+GoldOnHurt       | 0 | Roll of Pennies: Gold, wenn du getroffen wirst. Mehr Gold = mehr Truhen, aber kein Kampfwert. | Gold when you get hit. More gold = more chests, but no combat value.
+ExtraShrineItem  | 0 | Chance Doll: Schreine geben eher bessere Items. Nur mit viel Gold und Schreinen spürbar. | Shrines give better items more often. Only noticeable with lots of gold and shrines.
+# ---------------------------------------------------------------- Grün / green
+ChainLightning   | 1 | Ukulele: 25% Chance auf einen Blitz, der auf mehrere Gegner springt. Starker Flächenschaden und löst weitere Procs aus. | 25% chance for lightning that chains between enemies. Strong area damage and triggers more procs.
+Missile          | 2 | AtG Missile Mk. 1: 10% Chance auf eine Rakete mit 300% Schaden. Raketen lösen wiederum andere Procs aus – Kern jedes Proc-Builds. Community S-Tier. | 10% chance to fire a missile for 300% damage. Missiles trigger other procs in turn – core of every proc build. Community S-tier.
+AttackSpeedOnCrit | 1 | Predatory Instincts: Crits geben stapelndes Angriffstempo. Braucht Crit-Chance (Glasses), dann sehr stark. | Crits give stacking attack speed. Needs crit chance (Glasses), then very strong.
+HealOnCrit       | 1 | Harvester's Scythe: Crits heilen dich. Mit genug Crit-Chance (Glasses) eine der besten Heilquellen. | Crits heal you. With enough crit chance (Glasses) one of the best healing sources.
+Seed             | 0 | Leeching Seed: jeder Treffer heilt ein bisschen. Stark bei sehr vielen Treffern (Merc, Acrid, REX), sonst schwach. | Every hit heals a little. Strong with lots of hits (Merc, Acrid, REX), weak otherwise.
+ExplodeOnDeath   | 2 | Will-o'-the-wisp: Gegner explodieren beim Tod und reißen andere mit. Kettenreaktionen räumen ganze Gruppen. Community S-Tier. | Enemies explode on death and take others with them. Chain reactions clear whole groups. Community S-tier.
+FireRing         | 1 | Kjaro's Band: Treffer über 400% Schaden lösen einen Feuer-Tornado aus (Cooldown). Stark für Charaktere mit großen Skill-Treffern. | Hits over 400% damage trigger a fire tornado (with cooldown). Strong for survivors with big skill hits.
+IceRing          | 1 | Runald's Band: Treffer über 400% Schaden lösen eine Eisexplosion aus, die verlangsamt. Zusammen mit Kjaro's sehr stark. | Hits over 400% damage trigger a slowing ice blast. Very strong together with Kjaro's.
+PrimarySkillShuriken | 1 | Shuriken: dein Primärangriff wirft zusätzlich Shuriken. Gut für Charaktere, die viel Primär nutzen (Commando, MUL-T). | Your primary also throws shurikens. Good for survivors who spam their primary (Commando, MUL-T).
+DeathMark        | 0 | Death Mark: Gegner mit vielen Debuffs nehmen mehr Schaden. Braucht viele Debuff-Items, um zu wirken. | Enemies with many debuffs take more damage. Needs lots of debuff items to work.
+WarCryOnMultiKill | 0 | Berzerker's Pauldron: Multikills geben Angriffs- und Lauftempo. Stark in Gegnergruppen. | Multikills give attack and move speed. Strong in groups.
+MoveSpeedOnKill  | 0 | Hunter's Harpoon: kurz Tempo nach Kills. Community D-Tier – zu kurz, um viel zu bringen. | Short speed boost after kills. Community D-tier – too short to matter much.
+Infusion         | 0 | Infusion: Kills geben dauerhaft Max-HP (mit Obergrenze). Gut früh, skaliert aber nicht weiter. | Kills give permanent max HP (capped). Good early, but stops scaling.
+Bandolier        | 1 | Bandolier: Kills lassen Munition fallen, die alle Skill-Cooldowns zurücksetzt. Stark für skill-lastige Charaktere. | Kills drop ammo that resets all skill cooldowns. Strong for skill-heavy survivors.
+Phasing          | 0 | Old War Stealthkit: bei wenig Leben unsichtbar + schnell. Fluchtwerkzeug, aber Gegner verlieren dich nicht immer. | Invisible + fast at low health. Escape tool, but enemies don't always lose track of you.
+SprintOutOfCombat | 0 | Red Whip: viel Tempo außerhalb des Kampfs. Schneller looten, im Kampf nutzlos. | Lots of speed out of combat. Faster looting, useless in a fight.
+SlowOnHit        | 0 | Chronobauble: Treffer verlangsamen Gegner. Nützliche Kontrolle, aber kein Schaden. | Hits slow enemies. Useful control, but no damage.
+ExecuteLowHealthElite | 1 | Old Guillotine: tötet Elite-Gegner sofort unter einer Lebensgrenze. Elites sind die gefährlichsten Gegner – sehr nützlich. | Instantly kills elites below a health threshold. Elites are the most dangerous enemies – very useful.
+EquipmentMagazine | 2 | Fuel Cell: +1 Equipment-Ladung und kürzerer Cooldown pro Stack. Macht gutes Equipment (Preon, Primordial Cube, Gesture) extrem stark. | +1 equipment charge and shorter cooldown per stack. Makes good equipment (Preon, Primordial Cube, Gesture) extremely strong.
+TriggerEnemyDebuffs | 0 | Noxious Thorn: Debuffs springen beim Kill auf andere Gegner. Nur mit vielen Debuffs gut. | Debuffs spread to other enemies on kill. Only good with lots of debuffs.
+IncreaseDamageOnMultiKill | 0 | Chronic Expansion: Kills hintereinander erhöhen deinen Schaden. Stark in vollen Stages, verfällt aber, wenn du aufhörst zu töten. | Kills in a row raise your damage. Strong in busy stages, but drops off when you stop killing.
+IncreasePrimaryDamage | 0 | Luminous Shot: der Secondary lädt den nächsten Primär-Schuss auf. Hängt stark vom Charakter ab. | Your secondary charges up your next primary shot. Very survivor-dependent.
+KnockBackHitEnemies | 0 | Breaching Fin: wirft Gegner hoch und macht Bonusschaden. Okay, aber unzuverlässig. | Launches enemies up and deals bonus damage. Okay, but unreliable.
+StrengthenBurn   | 0 | Ignition Tank: Brand macht deutlich mehr Schaden. Nur mit Feuerquellen (Gasoline, Kjaro's, Artificer) gut. | Burn deals much more damage. Only good with fire sources (Gasoline, Kjaro's, Artificer).
+JumpBoost        | 0 | Wax Quail: Sprung beim Sprinten schleudert dich weit nach vorne. Mobilität, aber schwer zu kontrollieren. | Jumping while sprinting launches you forward. Mobility, but hard to control.
+SprintArmor      | 1 | Rose Buckler: +30 Rüstung beim Sprinten. Viel Schutz beim Laufen – besonders stark bei Seeker (Sojourn zählt als Sprinten). | +30 armor while sprinting. Lots of protection on the move – especially strong on Seeker (Sojourn counts as sprinting).
+TPHealingNova    | 0 | Lepton Daisy: Heilwellen während des Teleporters. Hilft beim Teleporter, sonst nichts. | Healing pulses during the teleporter event. Helps at the teleporter, nothing else.
+EnergizedOnEquipmentUse | 0 | War Horn: Equipment-Nutzung gibt Angriffstempo. Nur gut mit oft nutzbarem Equipment. | Using equipment gives attack speed. Only good with frequently usable equipment.
+FreeChest        | 1 | Shipping Request Form: jede Stage eine gratis Lieferkiste mit Items. Konstant mehr Items. | A free delivery crate with items every stage. Steady extra items.
+RegeneratingScrap | 0 | Regenerating Scrap: zählt im Drucker als grünes Item und kommt jede Stage zurück. Nur nützlich mit grünem Drucker. | Counts as a green item for printers and returns every stage. Only useful with a green printer.
+LowerPricedChests | 1 | Sale Star: die nächste Truhe gibt ein zusätzliches Item. Mehr Items = stärkerer Run. | The next chest gives an extra item. More items = stronger run.
+ExtraStatsOnLevelUp | 0 | Prayer Beads: speichert Werte und gibt sie beim Level-up dauerhaft. Langsamer Aufbau. | Stores stats and grants them permanently on level-up. Slow to pay off.
+BarrageOnBoss    | 0 | War Bonds: Raketensalven beim Teleporter. Hilft gegen Bosse, sonst wenig. | Missile barrages at the teleporter. Helps against bosses, little otherwise.
+Squid            | 0 | Squid Polyp: Truhen-Interaktion erzeugt einen Turm. Schwacher Schaden, skaliert kaum. | Interacting spawns a turret. Weak damage, barely scales.
+BonusGoldPackOnKill | 0 | Ghor's Tome: Kills lassen manchmal Gold fallen. Mehr Truhen, aber kein Kampfwert. | Kills sometimes drop gold. More chests, but no combat value.
+Thorns           | 1 | Razorwire: wenn du getroffen wirst, treffen Klingen Gegner um dich. Gut mitten im Kampf und bei Nahkämpfern, mit mehr Stacks mehr Ziele. | When you get hit, blades strike enemies around you. Good in the thick of a fight and for melee, more stacks = more targets.
+# ---------------------------------------------------------------- Rot / red
+Clover           | 2 | 57 Leaf Clover: würfelt jeden Zufalls-Effekt erneut. Alle Proc-Items werden deutlich zuverlässiger. Community S-Tier. | Rerolls every random effect. All proc items become much more reliable. Community S-tier.
+BounceNearby     | 1 | Sentient Meat Hook: Chance, Gegner heranzuziehen und zu treffen. Stark mit Angriffstempo. | Chance to hook and hit nearby enemies. Strong with attack speed.
+Behemoth         | 1 | Brilliant Behemoth: jeder Treffer explodiert in einem Radius. Macht jeden Angriff zu Flächenschaden – stark mit Angriffstempo. | Every hit explodes in an area. Turns every attack into area damage – strong with attack speed.
+AlienHead        | 1 | Alien Head: -25% Cooldown auf alle Skills. Öfter Skills = mehr Schaden und Überleben. | -25% cooldown on all skills. More skill use = more damage and survival.
+Dagger           | 1 | Ceremonial Dagger: Kills feuern zielsuchende Dolche. Kettenreaktionen in großen Gruppen. | Kills fire homing daggers. Chain reactions in big groups.
+Icicle           | 0 | Frost Relic: Kills erzeugen einen Eissturm um dich. Okay in Gruppen. | Kills create an ice storm around you. Okay in groups.
+UtilitySkillMagazine | 1 | Hardlight Afterburner: +2 Ladungen für deinen Utility-Skill (Ausweich-Skill) und kürzerer Cooldown. Mehr Ausweichen = mehr Überleben. | +2 charges for your utility (dodge) skill and shorter cooldown. More dodges = more survival.
+CritDamage       | 1 | Laser Scope: Crits machen deutlich mehr Schaden. Braucht Crit-Chance (Glasses), dann enorm. | Crits deal much more damage. Needs crit chance (Glasses), then huge.
+ExtraLife        | 1 | Dio's Best Friend: einmal wiederbeleben, dann verbraucht. Zweite Chance im Run. | Revive once, then it's used up. A second chance in the run.
+HeadHunter       | 0 | Wake of Vultures: Elite-Kills geben kurz deren Kräfte. Spaßig, aber unzuverlässig. | Elite kills grant their powers briefly. Fun, but unreliable.
+ImmuneToDebuff   | 1 | Ben's Raincoat: blockt Debuffs und gibt Barriere. Schützt vor gefährlichen Elites. | Blocks debuffs and gives barrier. Protects against dangerous elites.
+ShockNearby      | 0 | Unstable Tesla Coil: Blitze auf Gegner in der Nähe, mit Pausen. Okay im Nahkampf. | Lightning on nearby enemies, with pauses. Okay in melee.
+FallBoots        | 0 | H3AD-5T v2: höherer Sprung und ein Stampf-Angriff beim Landen. Mobilität mit etwas Schaden. | Higher jump and a stomp attack on landing. Mobility with some damage.
+MoreMissile      | 1 | Pocket I.C.B.M.: alle Raketen feuern dreifach. Mit AtG Missile extrem stark. | All missiles fire three times. Extremely strong with AtG Missile.
+PermanentDebuffOnHit | 1 | Symbiotic Scorpion: Treffer senken die Rüstung dauerhaft. Alles, was du triffst, wird immer schwächer. | Hits permanently lower armor. Everything you hit keeps getting weaker.
+ArmorReductionOnHit | 1 | Shattering Justice: Treffer senken die Rüstung von Gegnern. Hilft besonders gegen zähe Bosse. | Hits lower enemy armor. Especially helps against tanky bosses.
+GhostOnKill      | 0 | Happiest Mask: Kills erzeugen manchmal Geister. Community C-Tier – zu zufällig. | Kills sometimes spawn ghosts. Community C-tier – too random.
+KillEliteFrenzy  | 1 | Brainstalks: nach Elite-Kills kurz keine Cooldowns. Skill-Spam in vollen Stages. | No cooldowns for a short time after elite kills. Skill spam in busy stages.
+LaserTurbine     | 0 | Resonance Disc: Bewegung und Kills laden einen Laser auf. Langsamer Aufbau. | Moving and killing charges a laser. Slow to build up.
+StunAndPierce    | 0 | Electric Boomerang: betäubender Bumerang. Kontrolle, aber wenig Schaden. | Stunning boomerang. Control, but little damage.
+MeteorAttackOnHighDamage | 0 | Runic Lens: große Treffer rufen Meteore. Nur mit großen Einzeltreffern gut. | Big hits call down meteors. Only good with big single hits.
+TeleportOnLowHealth | 1 | Unstable Transmitter: teleportiert dich bei wenig Leben weg und schadet Gegnern. Rettet dich aus tödlichen Situationen. | Teleports you away at low health and damages enemies. Saves you from deadly situations.
+IncreaseHealing  | 1 | Rejuvenation Rack: verdoppelt jede Heilung. Stark, sobald du Heilquellen hast (Scythe, Seed, Medkit). | Doubles all healing. Strong once you have healing sources (Scythe, Seed, Medkit).
+NovaOnHeal       | 1 | N'kuhana's Opinion: Heilung lädt Schädelgeschosse auf. Heilung wird zu Schaden – stark mit REX. | Healing charges up skull projectiles. Healing becomes damage – strong with REX.
+Plant            | 0 | Interstellar Desk Plant: Kills lassen Heilpflanzen wachsen. Schwache Heilung. | Kills grow healing plants. Weak healing.
+Talisman         | 1 | Soulbound Catalyst: Kills senken den Equipment-Cooldown. Sehr stark mit gutem Equipment. | Kills lower equipment cooldown. Very strong with good equipment.
+RandomEquipmentTrigger | 0 | Bottled Chaos: Equipment löst zusätzlich zufällige Effekte aus. Zu zufällig. | Equipment triggers extra random effects. Too random.
+DroneWeapons     | 0 | Spare Drone Parts: deine Drohnen werden stärker. Nur mit Drohnen sinnvoll. | Your drones get stronger. Only useful with drones.
+ItemDropChanceOnKill | 0 | Sonorous Whispers: Elite-Kills können Items fallen lassen. Langfristiger Wert. | Elite kills can drop items. Long-term value.
+BoostAllStats    | 0 | Growth Nectar: Werte-Bonus abhängig von deinen Buffs. Situativ. | Stat bonus based on your buffs. Situational.
+OnLevelUpFreeUnlock | -1 | Longstanding Solitude: Gold wird zu XP, Truhen werden teurer. Schwächt deinen Run. | Gold turns into XP, chests get more expensive. Weakens your run.
+# ---------------------------------------------------------------- Void
+# Umwandlungs-Warnungen kommen automatisch dazu. / Conversion warnings are automatic.
+ChainLightningVoid | 0 | Polylute: Blitz trifft ein Ziel mehrfach. Stark gegen Einzelziele, schwächer in Gruppen als Ukulele. | Lightning hits one target several times. Strong single-target, weaker in groups than Ukulele.
+BleedOnHitVoid   | 1 | Needletick: Treffer lösen Collapse aus – großer Schaden nach kurzer Zeit. Stark mit Angriffstempo. | Hits apply Collapse – big damage after a short delay. Strong with attack speed.
+SlowOnHitVoid    | 1 | Tentabauble: Chance, Gegner festzuhalten. Starke Kontrolle. | Chance to root enemies in place. Strong control.
+ExplodeOnDeathVoid | 2 | Voidsent Flame: Gegner mit vollem Leben explodieren beim ersten Treffer. Räumt Gruppen extrem schnell – Community S-Tier. | Full-health enemies explode on your first hit. Clears groups extremely fast – community S-tier.
+EquipmentMagazineVoid | 0 | Lysate Cell: +1 Ladung für deinen Special-Skill. Stark nur bei gutem Special. | +1 charge for your special skill. Only strong with a good special.
+ExtraLifeVoid    | 1 | Pluripotent Larva: einmal wiederbeleben, wandelt aber Items in Void-Items um. | Revive once, but turns items into void items.
+BearVoid         | 1 | Safer Spaces: blockt alle paar Sekunden einen Treffer sicher. Verlässlicher als Tougher Times, aber mit Cooldown. | Reliably blocks a hit every few seconds. More reliable than Tougher Times, but with a cooldown.
+CloverVoid       | 0 | Benthic Bloom: wertet jede Stage Items zur nächsten Seltenheit auf. Gut langfristig, aber zufällig. | Upgrades items to the next rarity every stage. Good long-term, but random.
+MissileVoid      | 1 | Plasma Shrimp: Raketen, solange du Schild hast. Stark mit Schild-Items. | Missiles while you have shield. Strong with shield items.
+MushroomVoid     | 2 | Weeping Fungus: heilt beim Sprinten. Dauerhafte Heilung in Bewegung – Community S-Tier. | Heals while sprinting. Constant healing on the move – community S-tier.
+CritGlassesVoid  | 0 | Lost Seer's Lenses: winzige Chance auf Sofort-Kill statt Crit. Schlechter Tausch gegen Lens-Maker's Glasses. | Tiny chance to instantly kill instead of crit. A bad trade for Lens-Maker's Glasses.
+TreasureCacheVoid | 0 | Encrusted Key: öffnet Void-Kisten. Kein Kampfwert. | Opens void cradles. No combat value.
+ElementalRingVoid | -1 | Singularity Band: frisst Kjaro UND Runald und ist schwächer als beide zusammen. | Eats Kjaro AND Runald and is weaker than both together.
+VoidMegaCrabItem | 0 | Newly Hatched Zoea: erzeugt Void-Verbündete. Community C-Tier. | Spawns void allies. Community C-tier.
+# ---------------------------------------------------------------- Lunar
+LunarPrimaryReplacement | 0 | Visions of Heresy: ersetzt den Primärangriff durch Lunar-Geschosse. Gut bei schwachem Primär, schlecht bei gutem. | Replaces your primary with lunar shards. Good if your primary is weak, bad if it's good.
+LunarSecondaryReplacement | 0 | Hooks of Heresy: ersetzt den Secondary. Situativ. | Replaces your secondary. Situational.
+LunarUtilityReplacement | 0 | Strides of Heresy: ersetzt den Utility-Skill durch Unsichtbarkeit + Heilung. Situativ. | Replaces your utility with invisibility + healing. Situational.
+LunarSpecialReplacement | 0 | Essence of Heresy: ersetzt den Special. Stark nur mit den anderen Heresy-Items. | Replaces your special. Only strong with the other Heresy items.
+ShieldOnly       | 1 | Transcendence: dein Leben wird zu Schild, der sich schnell auflädt. Stark mit vielen Leben-Items, verhindert aber Heilung. | Your health becomes a fast-recharging shield. Strong with many health items, but blocks healing.
+AutoCastEquipment | 1 | Gesture of the Drowned: Equipment feuert automatisch und öfter, aber du kannst den Zeitpunkt nicht wählen. Stark mit Fuel Cells und gutem Equipment. | Equipment fires automatically and more often, but you can't choose when. Strong with Fuel Cells and good equipment.
+RandomDamageZone | 0 | Mercurial Rachis: zufällige Buff-Zone, die auch Gegner stärkt. | Random buff zone that also buffs enemies.
+LunarSun         | -1 | Egocentrism: Kugeln greifen Gegner an, fressen aber nach und nach deine anderen Items. Schadet dem Run. | Orbs attack enemies but slowly eat your other items. Hurts the run.
+LunarDagger      | 1 | Shaped Glass: doppelter Schaden, halbes Leben pro Stack. Stark, aber riskant – nur, wenn du gut ausweichst. | Double damage, half health per stack. Strong but risky – only if you dodge well.
+GoldOnHit        | 0 | Brittle Crown: Treffer geben Gold, getroffen werden kostet Gold. Gut, wenn du selten getroffen wirst. | Hits give gold, getting hit costs gold. Good if you rarely get hit.
+RepeatHeal       | 0 | Corpsebloom: Heilung wird verdoppelt, aber über Zeit verteilt. Schlecht in Notfällen. | Healing is doubled but spread over time. Bad in emergencies.
+FocusConvergence | 0 | Focused Convergence: Teleporter lädt schneller, aber kleinere Zone. Riskant. | Teleporter charges faster, but smaller zone. Risky.
+LunarTrinket     | 0 | Beads of Fealty: nur für einen geheimen Weg, kein Kampfwert. | Only for a secret route, no combat value.
+MonstersOnShrineUse | -1 | Defiant Gouge: Schreine rufen zusätzliche Gegner. Nur Nachteil. | Shrines spawn extra enemies. Only a downside.
+LunarBadLuck     | -1 | Purity: kürzere Cooldowns, aber alle Zufalls-Effekte haben Pech. Zerstört Proc-Builds. | Shorter cooldowns, but every random effect gets bad luck. Ruins proc builds.
+HalfAttackSpeedHalfCooldowns | 0 | Light Flux Pauldron: halbes Angriffstempo, halbe Cooldowns. Gut für skill-lastige Charaktere, schlecht für Proc-Builds. | Half attack speed, half cooldowns. Good for skill-heavy survivors, bad for proc builds.
+HalfSpeedDoubleHealth | 0 | Stone Flux Pauldron: doppeltes Leben, halbes Tempo. Langsam ist gefährlich in RoR2. | Double health, half speed. Being slow is dangerous in RoR2.
+RandomlyLunar    | 0 | Eulogy Zero: Items werden manchmal zu zufälligen Lunar-Items. Unberechenbar. | Items sometimes turn into random lunar items. Unpredictable.
+# ---------------------------------------------------------------- DLC3 / DLC4
+ExtraEquipment   | 2 | Functional Coupler: zweiter Equipment-Slot. Zwei aktive Fähigkeiten – Community S-Tier. | Second equipment slot. Two active abilities – community S-tier.
+SharedSuffering  | 2 | Networked Suffering: verteilt erlittenen Schaden auf Gegner in der Nähe. Community S-Tier. | Spreads damage you take to nearby enemies. Community S-tier.
+Duplicator       | 1 | Substandard Duplicator: kopiert Items kurzzeitig. Mehr Items im wichtigen Moment. | Temporarily copies items. More items when it matters.
+CritAtLowerElevation | 0 | Hiker's Boots: Crit-Bonus gegen Gegner unter dir. Situativ – stark für Charaktere, die viel in der Luft sind. | Crit bonus against enemies below you. Situational – strong for survivors who spend a lot of time in the air.
+JumpDamageStrike | 0 | Faraday Spur: Tempo und ein elektrischer Sprungangriff. Okay, aber situativ. | Speed and an electric jump strike. Okay, but situational.
+WispOnKill       | 1 | Whispering Fragment: Geist alle 5 Kills. | Spirit every 5 kills.
+DreamDemon       | 1 | Nightmare Demon: löst alle On-Kill-Items aus. | Triggers all on-kill items.
+VengefulSpirit   | 1 | Vengeful Spirit: Schutzgeist. | Protective spirit.
+RechargeableJump | 1 | Earthbound Vessel: 3 Extra-Sprünge. | 3 extra jumps.
+WyrmOnHit        | 1 | Sautéed Worms: Proc-Item. | Proc item.
+ShieldBooster    | 0 | Kinetic Dampener: Schild-Treffer lösen Explosionen aus. Nur mit Schild-Items sinnvoll. | Shield hits trigger explosions. Only useful with shield items.
+ShockDamageAura  | 0 | Faulty Conductor: stärkt Blitz-Schaden. Nur mit Blitz-Items gut. | Boosts lightning damage. Only good with lightning items.
+SanguineChalice  | 0 | Sanguine Chalice: nur mit Bluten. | Bleed only.
+GhostBlades      | 0 | |
+VileCenser       | 0 | Vile Censer: nur mit Stun. | Stun only.
+DronesDropDynamite | 0 | Box of Dynamite: deine Drohnen werfen Dynamit. Nur mit Drohnen sinnvoll (Operator). | Your drones throw dynamite. Only useful with drones (Operator).
+PhysicsProjectile| 0 | |
+SpeedOnPickup    | 0 | |
+BonusHealthBoost | 0 | |
+MushShot         | 0 | |
+SprintDamage     | 0 | |
+GoldenGoose      | 0 | |
+CausticPheromones| 0 | |
+LowHealthOrbSpawner | 0 | |
+MoneyLoan        | -1 | Ominous Loan Note: Schulden fressen dein Gold. | Debt eats your gold.
+TransferDebuffOnHit | -1 | Neutronium Weight: ein Gewicht, das dich schwächt, bis du es weitergibst. Schadet dir im Kampf. | A weight that weakens you until you pass it on. Hurts you in combat.
+# ---------------------------------------------------------------- Equipment
+CritOnUse        | 1 | Ocular HUD: 100% Crit für kurze Zeit. | 100% crit for a while.
+Blackhole        | 1 | Primordial Cube: zieht Gegner zusammen. | Pulls enemies together.
+GainArmor        | 1 | Jade Elephant: viel Rüstung kurz. | Lots of armor briefly.
+Cleanse          | 1 | Blast Shower: entfernt Debuffs. | Removes debuffs.
+CommandMissile   | 1 | Disposable Missile Launcher: Raketenschwarm. | Missile swarm.
+BFG              | 1 | Preon Accumulator: riesiger Schuss. | Huge blast.
+Lightning        | 1 | Royal Capacitor: Blitz auf Ziel. | Lightning strike.
+DroneBackup      | 1 | Back-up: Drohnen-Hilfe. | Drone backup.
+TeamWarCry       | 1 | Gorag's Opus: Team-Buff. | Team buff.
+GummyClone       | 1 | Goobo Jr.: Klon von dir. | Clone of you.
+DeathProjectile  | 1 | Forgive Me Please: löst On-Kill-Items aus. | Triggers on-kill items.
+Molotov          | 1 | Molotov: Feuerflächen. | Fire pools.
+PassiveHealing   | 1 | Gnarled Woodsprite: Heilung. | Healing.
+BossHunter       | 1 | Trophy Hunter's Tricorn: tötet Bosse sofort. | Executes bosses.
+Saw              | 1 | Sawmerang: Bluten + Schaden. | Bleed + damage.
+LifestealOnHit   | 1 | Super Massive Leech: Lebensraub. | Lifesteal.
+Meteor           | -1 | Glowing Meteorite: trifft auch dich. | Hits you too.
+BurnNearby       | -1 | Helfire Tincture: verbrennt auch dich. | Burns you too.
+Tonic            | 1 | Spinel Tonic: riesiger Buff auf alle Werte, kann dich aber dauerhaft schwächen. Riskant. | Huge buff to all stats, but can weaken you permanently. Risky.
+LunarPortalOnUse | -1 | |
+MultiShopCard    | 0 | Executive Card: Geld zurück bei Käufen und Multishops füllen sich auf. Mehr Items pro Gold. | Money back on purchases and multishops refill. More items per gold.
+
+# ---------------------------------------------------------------- Boss / gelb
+BleedOnHitAndExplode | 2 | Shatterspleen: Crits lassen Gegner bluten, blutende Gegner explodieren beim Tod. Mit Crit-Chance einer der stärksten Flächenschäden. | Crits make enemies bleed, bleeding enemies explode on death. With crit chance one of the strongest area damage sources.
+NovaOnLowHealth  | 2 | Genesis Loop: bei wenig Leben eine riesige Explosion um dich. Rettet dich in Notlagen. | A huge blast around you at low health. Saves you in emergencies.
+LightningStrikeOnHit | 2 | Charged Perforator: Chance auf einen Blitzschlag mit hohem Schaden. Löst weitere Procs aus. | Chance for a high-damage lightning strike. Triggers more procs.
+BeetleGland      | 1 | Queen's Gland: Käfer kämpfen für dich. | Beetle guards fight for you.
+TitanGoldDuringTP | 1 | Halcyon Seed: Aurelionite hilft beim Teleporter. | Aurelionite helps at the teleporter.
+SiphonOnLowHealth | 1 | Mired Urn: saugt Leben von Gegnern. | Drains health from enemies.
+Pearl            | 1 | Pearl: mehr Max-HP. | More max health.
+ShinyPearl       | 1 | Irradiant Pearl: alle Werte hoch. | All stats up.
+Knurl            | 1 | Titanic Knurl: Leben + Regeneration. | Health + regen.
+
+# ============================================================================
+#  Charaktere / survivors
+# ============================================================================
+
+[CommandoBody]
+Path: Syringe x5 > CritGlasses x5 > Crowbar x3 > Bear x3 > PrimarySkillShuriken x1 > Hoof x2
+Path: Syringe x10 > CritGlasses x10 > ChainLightning x2 > Missile x2 > PrimarySkillShuriken x3 > HealOnCrit x1
+Path: CritDamage x2 > Behemoth x1 > Clover x1 > AlienHead x1 > BleedOnHitAndExplode x1
+# Commando trifft sehr oft -> On-Hit-Items sind hier am stärksten
+Crowbar          | 2 | Double Tap/Suppressive Fire: viele Treffer, Crowbar öffnet jeden Gegner. | Lots of hits, Crowbar opens every fight.
+PrimarySkillShuriken | 2 | Commando spammt den Primärangriff. | Commando spams primary.
+CritDamage       | 2 | Commando + Glasses + Laser Scope = Crit-Build. | Commando + Glasses + Scope = crit build.
+
+[HuntressBody]
+Path: CritGlasses x5 > Hoof x3 > Syringe x5 > Bear x3 > Missile x1
+Path: CritGlasses x10 > Syringe x10 > HealOnCrit x2 > UtilitySkillMagazine x1 > ChainLightning x2 > AttackSpeedOnCrit x1
+Path: CritDamage x2 > Behemoth x1 > Clover x1 > Missile x3 > FireRing x1 > IceRing x1
+CritGlasses      | 2 | Huntress baut auf Crit – Brille zuerst. | Huntress builds on crit – glasses first.
+# Huntress: Crits + Mobilität, schießt im Sprint
+CritDamage       | 2 | Huntress baut stark auf Crit. | Huntress scales hard with crit.
+HealOnCrit       | 2 | Crit-Heilung hält Huntress am Leben. | Crit healing keeps Huntress alive.
+UtilitySkillMagazine | 2 | Mehr Blinks = mehr Überleben. | More blinks = more survival.
+Hoof             | 2 | Schießt im Laufen – Tempo ist Schaden. | Shoots while moving – speed is damage.
+LunarPrimaryReplacement | -1 | Ersetzt ihren Auto-Aim-Primärangriff. | Replaces her auto-aim primary.
+
+[Bandit2Body]
+Path: Crowbar x3 > Syringe x3 > Bear x3 > Hoof x2 > BossDamageBonus x2
+Path: Crowbar x5 > BossDamageBonus x3 > ExecuteLowHealthElite x1 > Bandolier x2 > ChainLightning x1 > Missile x1
+Path: CritDamage x2 > AlienHead x1 > Clover x1 > BleedOnHitAndExplode x1
+# Bandit: Backstabs sind immer Crits, Resets durch Kills
+CritDamage       | 2 | Backstabs critten immer -> Laser Scope ist riesig. | Backstabs always crit -> Laser Scope is huge.
+Crowbar          | 2 | Großer erster Treffer + Crowbar = One-Shots. | Big first hit + Crowbar = one-shots.
+BossDamageBonus  | 2 | Hohe Einzeltreffer auf Bosse. | Big single hits on bosses.
+
+[MageBody]
+Path: Syringe x3 > Bear x3 > Feather x1 > IgniteOnKill x1 > Hoof x2
+Path: Syringe x5 > StrengthenBurn x2 > FireRing x2 > IceRing x1 > Feather x2 > Missile x1
+Path: AlienHead x1 > Behemoth x1 > Clover x1 > UtilitySkillMagazine x1 > MeteorAttackOnHighDamage x1
+# Artificer: Feuer + Cooldowns
+StrengthenBurn   | 2 | Ignition Tank: Flamethrower + Brand = viel Schaden. | Flamethrower burn gets much stronger.
+IgniteOnKill     | 2 | Brand verbreitet sich. | Spreads burn.
+FireRing         | 2 | Große Treffer (Nano-Bomb) lösen Kjaro aus. | Big hits trigger Kjaro.
+IceRing          | 2 | Große Treffer lösen Runald aus. | Big hits trigger Runald.
+Feather          | 2 | Mehr Luftkontrolle. | More air control.
+Molotov          | 2 | Noch mehr Feuer. | Even more fire.
+
+[MercBody]
+Path: Syringe x5 > CritGlasses x5 > Bear x3 > Feather x1 > Hoof x2
+Path: Syringe x10 > CritGlasses x10 > AttackSpeedOnCrit x2 > HealOnCrit x2 > Seed x2 > Feather x2
+Path: ChainLightning x2 > Behemoth x1 > Clover x1 > AlienHead x1 > BleedOnHitAndExplode x1
+CritGlasses      | 2 | Crits treiben Predatory Instincts und Scythe an. | Crits fuel Predatory Instincts and Scythe.
+# Merc: viele Hits, i-Frames, Cooldown-Skills
+AttackSpeedOnCrit| 2 | Mehr Angriffstempo = mehr Treffer. | More attack speed = more hits.
+HealOnCrit       | 2 | Crits heilen, Merc ist immer im Nahkampf. | Crits heal, Merc lives in melee.
+Feather          | 2 | Merc-Kombos nutzen Sprünge. | Merc combos use jumps.
+Seed             | 2 | Viele Treffer = viel Heilung. | Many hits = lots of healing.
+
+[ToolbotBody]
+Path: Syringe x5 > CritGlasses x3 > Bear x3 > EquipmentMagazine x1 > Hoof x2
+Path: Syringe x10 > CritGlasses x5 > Bear x5 > EquipmentMagazine x3 > ChainLightning x2 > Missile x1
+Path: Behemoth x1 > Clover x1 > AlienHead x1 > Missile x3
+# MUL-T: zwei Equipment-Slots, Nailgun trifft sehr oft
+EquipmentMagazine| 2 | Fuel Cell: mehr Equipment-Ladungen, MUL-T hat zwei Slots. | More equipment charges, MUL-T has two slots.
+PrimarySkillShuriken | 1 | Primär wird viel genutzt. | Primary is used a lot.
+
+[EngiBody]
+Path: Crowbar x3 > Syringe x5 > StickyBomb x2 > Mushroom x1 > Bear x3
+Path: Crowbar x5 > Syringe x10 > Mushroom x2 > ChainLightning x2 > Missile x2 > ExplodeOnDeath x1
+Path: Behemoth x1 > Clover x1 > MoreMissile x1 > Missile x4
+# Engineer: Türme erben deine Items und stehen still
+Mushroom         | 2 | Bustling Fungus: Türme stehen still -> Dauerheilung. | Turrets stand still -> constant healing.
+Crowbar          | 2 | Türme erben Crowbar. | Turrets inherit Crowbar.
+StickyBomb       | 2 | Türme erben Procs. | Turrets inherit procs.
+Hoof             | 0 | Türme bewegen sich nicht. | Turrets don't move.
+SprintBonus      | 0 | Türme sprinten nicht. | Turrets don't sprint.
+
+[TreebotBody]
+Path: Seed x2 > Mushroom x1 > Bear x3 > Syringe x3 > Medkit x2
+Path: Seed x5 > Mushroom x2 > Infusion x2 > Syringe x5 > Feather x1
+Path: IncreaseHealing x1 > NovaOnHeal x1 > Clover x1 > Behemoth x1
+# REX: Skills kosten Leben -> Heilung ist Schaden
+Seed             | 2 | Heilung pro Treffer finanziert deine Skills. | Healing per hit pays for skills.
+HealOnCrit       | 2 | Mehr Heilung. | More healing.
+Mushroom         | 2 | REX steht oft still (Mortar). | REX stands still often.
+IncreaseHealing  | 2 | Rejuvenation Rack verdoppelt Heilung. | Doubles healing.
+NovaOnHeal       | 2 | N'kuhana's Opinion: Heilung wird Schaden. | Healing becomes damage.
+Infusion         | 2 | Mehr Max-HP = mehr Ressource. | More max HP = more resource.
+RepeatHeal       | 0 | |
+
+[LoaderBody]
+Path: Crowbar x3 > Bear x3 > Feather x1 > Syringe x3 > Hoof x2
+Path: Crowbar x5 > Bear x5 > FireRing x2 > IceRing x2 > Feather x2 > ChainLightning x1
+Path: MeteorAttackOnHighDamage x1 > AlienHead x1 > Behemoth x1 > Clover x1
+# Loader: riesige Einzeltreffer
+FireRing         | 2 | Charged Gauntlet löst Kjaro zuverlässig aus. | Charged punch reliably triggers Kjaro.
+IceRing          | 2 | Charged Gauntlet löst Runald zuverlässig aus. | Charged punch reliably triggers Runald.
+Crowbar          | 2 | Großer erster Treffer. | Big opening hit.
+MeteorAttackOnHighDamage | 2 | Runic Lens liebt große Treffer. | Runic Lens loves big hits.
+
+[CrocoBody]
+Path: Syringe x5 > Bear x3 > Seed x1 > Hoof x2 > Tooth x2
+Path: Syringe x10 > Seed x3 > Bear x5 > UtilitySkillMagazine x1 > ChainLightning x2 > Missile x1
+Path: UtilitySkillMagazine x2 > Behemoth x1 > Clover x1 > AlienHead x1
+# Acrid: Gift/Blight, Nahkampf
+Seed             | 2 | Viele Nahkampf-Treffer = Heilung. | Many melee hits = healing.
+UtilitySkillMagazine | 2 | Mehr Caustic Leaps. | More leaps.
+
+[CaptainBody]
+Path: Crowbar x3 > CritGlasses x3 > Bear x3 > Syringe x3 > Hoof x2
+Path: Crowbar x5 > CritGlasses x5 > Bear x5 > FireRing x2 > IceRing x2 > Missile x1
+Path: Behemoth x1 > Clover x1 > AlienHead x1 > EquipmentMagazine x2
+# Captain: aufgeladener Shotgun-Schuss
+Crowbar          | 2 | Aufgeladene Shotgun + Crowbar. | Charged shotgun + Crowbar.
+FireRing         | 2 | Voll geladene Schüsse lösen Kjaro aus. | Full charges trigger Kjaro.
+IceRing          | 2 | Voll geladene Schüsse lösen Runald aus. | Full charges trigger Runald.
+
+[RailgunnerBody]
+Path: Crowbar x3 > Bear x3 > BossDamageBonus x2 > Hoof x2 > Syringe x2
+Path: Crowbar x5 > Bear x5 > BossDamageBonus x3 > FireRing x2 > IceRing x1 > MeteorAttackOnHighDamage x1
+Path: CritDamage x2 > AlienHead x1 > Clover x1 > Behemoth x1
+# Railgunner: Schwachstellen = immer Crit, Crit-Chance wird zu Crit-Schaden
+CritDamage       | 2 | Schwachstellen critten immer -> Laser Scope ist ihr bestes Item. | Weak points always crit -> her best item.
+Crowbar          | 2 | Ein riesiger Treffer pro Gegner. | One huge hit per enemy.
+BossDamageBonus  | 2 | Bosse sind ihr Job. | Bosses are her job.
+FireRing         | 2 | Railgun-Treffer lösen Kjaro aus. | Railgun hits trigger Kjaro.
+IceRing          | 2 | Railgun-Treffer lösen Runald aus. | Railgun hits trigger Runald.
+MeteorAttackOnHighDamage | 2 | Runic Lens liebt große Treffer. | Runic Lens loves big hits.
+NearbyDamageBonus| -1 | Railgunner schießt auf Distanz. | Railgunner fights at range.
+Syringe          | 1 | Weniger wert, sie trifft selten. | Less value, she hits rarely.
+LunarPrimaryReplacement | -1 | Ersetzt ihren Primärangriff. | Replaces her primary.
+
+[VoidSurvivorBody]
+Path: Syringe x5 > Bear x3 > Hoof x2 > BleedOnHitVoid x1 > Feather x1
+Path: Syringe x10 > Bear x5 > BleedOnHitVoid x3 > ChainLightningVoid x2 > ExplodeOnDeathVoid x1
+Path: Clover x1 > AlienHead x1 > Behemoth x1 > MushroomVoid x1
+# Void Fiend: Void-Items und Corruption
+ChainLightningVoid | 2 | Polylute passt gut zu Void Fiend. | Polylute suits Void Fiend.
+BleedOnHitVoid   | 2 | Collapse im Nahkampf. | Collapse in melee.
+
+[SeekerBody]
+Path: Syringe x5 > Bear x3 > SecondarySkillMagazine x1 > SprintArmor x1 > Hoof x2
+Path: Syringe x10 > CritGlasses x5 > SecondarySkillMagazine x3 > FireRing x2 > IceRing x1 > SprintWisp x1
+Path: CritGlasses x10 > AlienHead x2 > FlatHealth x2 > Clover x1 > Behemoth x1
+# Seeker: Spirit-Punch-Kombos, Unseen Hand und Meditate als große Treffer
+Syringe          | 2 | Spirit Punch ist eine Kombo – Angriffstempo = mehr Treffer. | Spirit Punch is a combo – attack speed = more hits.
+SecondarySkillMagazine | 2 | Mehr Ladungen für Unseen Hand / Soul Spiral (Soul Spiral in der Luft = kleiner Sprung). | More Unseen Hand / Soul Spiral charges (Soul Spiral mid-air = small lift).
+FireRing         | 2 | Unseen Hand (600%) und volles Meditate lösen Kjaro aus. | Unseen Hand (600%) and charged Meditate trigger Kjaro.
+IceRing          | 2 | Unseen Hand (600%) und volles Meditate lösen Runald aus. | Unseen Hand (600%) and charged Meditate trigger Runald.
+SprintArmor      | 2 | Sojourn zählt als Sprinten -> Rose Buckler wirkt im Flug. | Sojourn counts as sprinting -> Rose Buckler works in flight.
+SprintWisp       | 2 | Little Disciple feuert auch während Sojourn. | Little Disciple also fires during Sojourn.
+FlatHealth       | 1 | Mehr Max-HP = länger in Sojourn bleiben. | More max HP = longer Sojourn flights.
+AlienHead        | 2 | Kürzere Cooldowns = öfter Meditate und Sojourn. | Shorter cooldowns = more Meditate and Sojourn.
+UtilitySkillMagazine | 1 | Mehr Sojourn-Ladungen. | More Sojourn charges.
+MeteorAttackOnHighDamage | 1 | Große Skill-Treffer lösen Runic Lens aus. | Big skill hits trigger Runic Lens.
+
+[DroneTechBody]
+Path: Syringe x3 > Bear x3 > Hoof x2 > DroneWeapons x1 > CritGlasses x3
+Path: Syringe x5 > Bear x5 > DroneWeapons x2 > DronesDropDynamite x2 > Missile x1
+Path: Clover x1 > AlienHead x1 > Behemoth x1
+# Operator: kämpft mit Drohnen
+DroneWeapons     | 2 | Spare Drone Parts: deine Drohnen werden stark. | Your drones get strong.
+DronesDropDynamite | 2 | Box of Dynamite: Drohnen werfen Dynamit. | Drones drop dynamite.
+DroneBackup      | 2 | Noch mehr Drohnen. | Even more drones.
+
+[Synergy]
+# --- Proc-Ketten / proc chains
+ChainLightning <> Missile   | Ukulele-Blitze und AtG-Raketen lösen sich gegenseitig aus. | Lightning and missiles proc each other.
+ChainLightning > Clover     | Clover würfelt deine Ukulele-Chance neu. | Clover rerolls your Ukulele proc.
+Missile > Clover            | Clover würfelt deine AtG-Chance neu. | Clover rerolls your AtG proc.
+BleedOnHit > Clover         | Clover würfelt Bluten neu. | Clover rerolls bleed.
+StickyBomb > Clover         | Clover würfelt Sticky Bomb neu. | Clover rerolls Sticky Bomb.
+Missile <> MoreMissile      | I.C.B.M. verdreifacht deine AtG-Raketen. | ICBM triples your AtG missiles.
+Syringe > BounceNearby      | Mehr Treffer = mehr Meat-Hook-Procs. | More hits = more Meat Hook procs.
+ChainLightning > ShockDamageAura | Faulty Conductor verstärkt Ukulele-Blitze. | Faulty Conductor boosts Ukulele lightning.
+ChainLightningVoid > ShockDamageAura | Faulty Conductor verstärkt Polylute-Blitze. | Faulty Conductor boosts Polylute lightning.
+# --- Bänder / bands
+FireRing <> IceRing         | Kjaro + Runald lösen beim selben Treffer aus – zusammen sehr stark. | Kjaro + Runald trigger on the same hit – very strong together.
+# --- Crit-Paket / crit package
+CritGlasses <> AttackSpeedOnCrit | Predatory braucht Crits. | Predatory needs crits.
+CritGlasses <> HealOnCrit   | Scythe braucht Crits. | Scythe needs crits.
+CritGlasses <> CritDamage   | Laser Scope braucht Crits. | Laser Scope needs crits.
+CritOnUse > CritDamage      | Ocular HUD = 100% Crit, Laser Scope verstärkt das. | Ocular HUD = 100% crit, Scope boosts it.
+# --- On-Kill-Ketten (Will-o'-the-wisp & Co.)
+Dagger <> ExplodeOnDeath    | Dolch-Kills lösen Wisp-Explosionen aus und umgekehrt. | Dagger kills trigger Wisp and vice versa.
+Dagger <> IgniteOnKill      | Kills verbreiten Feuer weiter. | Kills keep spreading fire.
+ExplodeOnDeath <> Icicle    | Mehr On-Kill-Effekte = mehr Kills. | More on-kill effects = more kills.
+ExplodeOnDeath > DreamDemon | Nightmare Demon löst deine On-Kill-Items aus. | Nightmare Demon triggers your on-kill items.
+IgniteOnKill > DreamDemon   | Nightmare Demon löst deine On-Kill-Items aus. | Nightmare Demon triggers your on-kill items.
+Dagger > DreamDemon         | Nightmare Demon löst deine On-Kill-Items aus. | Nightmare Demon triggers your on-kill items.
+ExplodeOnDeath > DeathProjectile | Forgive Me Please löst On-Kill-Items aus. | Triggers your on-kill items.
+Dagger > DeathProjectile    | Forgive Me Please löst On-Kill-Items aus. | Triggers your on-kill items.
+# --- Feuer / fire
+IgniteOnKill <> StrengthenBurn | Ignition Tank stärkt den Brand von Gasoline. | Ignition Tank boosts Gasoline burn.
+FireRing <> StrengthenBurn  | Ignition Tank stärkt Kjaro's Brand. | Ignition Tank boosts Kjaro burn.
+Molotov > StrengthenBurn    | Ignition Tank stärkt Molotov-Feuer. | Ignition Tank boosts Molotov fire.
+# --- Bluten / bleed
+BleedOnHit > SanguineChalice | Sanguine Chalice heilt durch dein Bluten. | Chalice heals from your bleed.
+Saw > SanguineChalice       | Sanguine Chalice heilt durch Sawmerang-Bluten. | Chalice heals from Sawmerang bleed.
+# --- Stun
+StunChanceOnHit > VileCenser | Vile Censer braucht Stuns. | Vile Censer needs stuns.
+StunAndPierce > VileCenser  | Boomerang betäubt -> Vile Censer. | Boomerang stuns -> Vile Censer.
+# --- Heilung / healing
+Seed > IncreaseHealing      | Rack verdoppelt Leeching Seed. | Rack doubles Leeching Seed.
+HealOnCrit > IncreaseHealing | Rack verdoppelt Scythe-Heilung. | Rack doubles Scythe healing.
+IncreaseHealing > NovaOnHeal | Mehr Heilung = mehr N'kuhana-Schaden. | More healing = more N'kuhana damage.
+# --- Schild / shield
+ShieldOnly > MissileVoid    | Transcendence = immer Schild -> Plasma Shrimp feuert dauernd. | Always shielded -> Shrimp fires constantly.
+PersonalShield > MissileVoid | Plasma Shrimp braucht Schild. | Shrimp needs shield.
+ShieldOnly > ShieldBooster  | Kinetic Dampener braucht Schild. | Dampener needs shield.
+# --- Equipment
+EquipmentMagazine <> AutoCastEquipment | Fuel Cell + Gesture: mehr Equipment, schneller. | More equipment, faster.
+EquipmentMagazine > Talisman | Soulbound Catalyst: Kills laden Equipment. | Kills recharge equipment.
+# --- Anti-Synergien / anti-synergies
+Clover !> LunarBadLuck      | Purity hebt deinen Clover auf. | Purity cancels your Clover.
+LunarBadLuck !> Clover      | Purity hebt Clover auf. | Purity cancels Clover.
+LunarDagger !> ShieldOnly   | Shaped Glass + Transcendence = sehr wenig Leben. | Glass + Transcendence = very little health.
