@@ -43,6 +43,7 @@
     <RemoveDir Directories="$(PkgDir)" />
     <Copy SourceFiles="$(TargetPath);$(OutDir)builds.txt;package\manifest.json;package\icon.png;README.md;CHANGELOG.md" DestinationFolder="$(PkgDir)" />
     <ZipDirectory SourceDirectory="$(PkgDir)" DestinationFile="$(MSBuildProjectDirectory)\package\Waso-ItemRecommender.zip" Overwrite="true" />
-    <Copy Condition="Exists('$(ModFolder)')" SourceFiles="$(TargetPath);$(OutDir)builds.txt" DestinationFolder="$(ModFolder)" />
+    <Copy Condition="Exists('$(ModFolder)')" SourceFiles="$(TargetPath);$(OutDir)builds.txt;package\manifest.json;package\icon.png;README.md;CHANGELOG.md" DestinationFolder="$(ModFolder)" />
+    <Exec Condition="Exists('$(ModFolder)')" Command="python &quot;$(MSBuildProjectDirectory)	ools\sync_r2modman.py&quot; &quot;$(ProfileDir)&quot; &quot;$(MSBuildProjectDirectory)\package\manifest.json&quot;" ContinueOnError="true" />
   </Target>
 </Project>
