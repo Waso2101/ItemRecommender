@@ -43,6 +43,13 @@ namespace ItemRecommender
         readonly Dictionary<string, int> liveTargets = new Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase);
         int completedGoals;
         string liveBody;
+        // Skipping (hotkeys): items are skipped until the next stage, the start page for the whole run.
+        readonly HashSet<string> skipped = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        bool skipStart, onStartPage;
+        List<PathStep> shownSteps;
+        string currentItem;
+        Run lastRun;
+        Stage lastStage;
 
         /// <summary>Called once per second; creates the tile once the objective panel exists.</summary>
         public static void Ensure(HUD hud)
@@ -133,6 +140,7 @@ namespace ItemRecommender
 
         void Update()
         {
+            HandleHotkeys();
             if (Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + 0.5f;
             try { Refresh(); }
@@ -176,10 +184,22 @@ namespace ItemRecommender
             // Page 1 comes from the file (a fixed start). After that every page is live: the best
             // items for this survivor right now, re-ranked on every refresh with your synergies.
             bool german = Plugin.German();
+            if (lastRun != Run.instance)
+            {
+                lastRun = Run.instance;
+                skipStart = false;
+                skipped.Clear();
+                liveTargets.Clear();
+                completedGoals = 0;
+            }
+            if (lastStage != Stage.instance) { lastStage = Stage.instance; skipped.Clear(); } // "maybe later"
+
             List<PathStep> steps = null;
             string label = german ? "Build-Pfad" : "Build path";
-            bool startDone = Complete(body, pages[0]);
-            if (!startDone || !Plugin.LivePages.Value) steps = startDone ? pages[pages.Count - 1] : pages[0];
+            var start = pages[0].FindAll(st => !skipped.Contains(st.Item));
+            bool startDone = skipStart || Complete(body, start);
+            onStartPage = !startDone;
+            if (!startDone || !Plugin.LivePages.Value) steps = startDone ? pages[pages.Count - 1] : start;
             else steps = LivePage(body, bodyName, german, pages);
             if (steps == null) steps = pages[pages.Count - 1];
             else if (startDone && Plugin.LivePages.Value)
@@ -198,6 +218,25 @@ namespace ItemRecommender
             if (sig.ToString() == signature) return;
             signature = sig.ToString();
             Rebuild(steps, counts, width, german, label);
+        }
+
+        void HandleHotkeys()
+        {
+            if (!bg || !bg.enabled || shownSteps == null) return;
+            bool changed = false;
+            if (Plugin.SkipItemKey.Value.IsDown() && currentItem != null)
+            {
+                skipped.Add(currentItem);
+                liveTargets.Remove(currentItem);
+                changed = true;
+            }
+            else if (Plugin.SkipPageKey.Value.IsDown())
+            {
+                if (onStartPage) skipStart = true;
+                else foreach (var st in shownSteps) { skipped.Add(st.Item); liveTargets.Remove(st.Item); }
+                changed = true;
+            }
+            if (changed) { signature = null; nextRefresh = 0f; }
         }
 
         static bool Complete(CharacterBody body, List<PathStep> steps)
@@ -228,7 +267,7 @@ namespace ItemRecommender
             foreach (var name in Plugin.Data.CandidateItems(bodyName))
             {
                 var ii = ItemCatalog.FindItemIndex(name);
-                if (ii == ItemIndex.None) continue; // items only, equipment doesn't stack
+                if (ii == ItemIndex.None || skipped.Contains(name)) continue; // items only, equipment doesn't stack
                 var def = ItemCatalog.GetItemDef(ii);
                 if (!def || def.tier == ItemTier.NoTier || def.tier == ItemTier.Lunar) continue;
                 if (Run.instance && !Run.instance.IsItemAvailable(ii)) continue;
@@ -277,6 +316,8 @@ namespace ItemRecommender
             int current = -1;
             for (int i = 0; i < steps.Count; i++)
                 if (counts[i] < steps[i].Target) { current = i; break; }
+            shownSteps = steps;
+            currentItem = current >= 0 ? steps[current].Item : null;
 
             var title = MakeTitle();
             Ui.Fixed(title.rectTransform, new Vector2(Pad, -Pad), new Vector2(width - Pad * 2, titleH));
@@ -318,6 +359,16 @@ namespace ItemRecommender
             CenterRow(row, rowWidth, inner);
 
             float height = -y + rowH + Pad;
+            if (Plugin.ShowSkipHint.Value)
+            {
+                var hint = Ui.MakeText(content, "Hint", 9f, new Color(0.6f, 0.6f, 0.6f));
+                hint.alignment = TextAlignmentOptions.Center;
+                hint.text = german
+                    ? $"{Plugin.SkipItemKey.Value}: Item überspringen · {Plugin.SkipPageKey.Value}: Seite überspringen"
+                    : $"{Plugin.SkipItemKey.Value}: skip item · {Plugin.SkipPageKey.Value}: skip page";
+                Ui.Fixed(hint.rectTransform, new Vector2(Pad, -height + Pad - 2f), new Vector2(width - Pad * 2, 12f));
+                height += 12f;
+            }
             ((RectTransform)transform).sizeDelta = new Vector2(width, height);
             layout.preferredHeight = layout.minHeight = height;
             layout.preferredWidth = width;

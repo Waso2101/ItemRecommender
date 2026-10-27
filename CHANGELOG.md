@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0
+- Skip hotkeys for the build path: F7 = skip item until next stage, F8 = skip page
+- Removed filler items (Medkit, Monster Tooth) from the start pages
+
 ## 0.5.1
 - Plugin ID is now Waso.ItemRecommender (config file: Waso.ItemRecommender.cfg). Old settings are taken over automatically.
 

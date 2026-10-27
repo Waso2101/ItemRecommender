@@ -1,4 +1,4 @@
-#@version 10
+#@version 11
 # ============================================================================
 #  ItemRecommender – Item-Empfehlungen / item recommendations
 #  Die Datei wird beim Öffnen jedes Command-Menüs neu eingelesen, wenn sie sich
@@ -41,7 +41,7 @@
 # ============================================================================
 
 [Default]
-Path: Syringe x10 > Bear x6 > Hoof x6 > CritGlasses x10 > IgniteOnKill x2 > Missile x2 > Medkit x4 > Tooth x4
+Path: Syringe x10 > Bear x6 > Hoof x6 > CritGlasses x10 > IgniteOnKill x2 > Missile x2 > ChainLightning x1 > ExplodeOnDeath x1
 Path: Syringe x20 > Bear x10 > CritGlasses x10 > ChainLightning x3 > ExplodeOnDeath x3 > FireRing x2 > IceRing x2 > Missile x2 > HealOnCrit x2
 Path: Missile x5 > HealOnCrit x2 > Feather x3 > Clover x1 > AlienHead x1 > Behemoth x1 > BleedOnHitAndExplode x1
 # ---------------------------------------------------------------- Weiß / white
@@ -249,7 +249,7 @@ Knurl            | 1 | Titanic Knurl: Leben + Regeneration. | Health + regen.
 # ============================================================================
 
 [CommandoBody]
-Path: Syringe x10 > CritGlasses x10 > Crowbar x6 > Bear x6 > PrimarySkillShuriken x2 > Hoof x4 > Medkit x4 > Tooth x4
+Path: Syringe x10 > CritGlasses x10 > Crowbar x6 > Bear x6 > PrimarySkillShuriken x2 > Hoof x4 > Missile x1 > ChainLightning x1
 Path: Syringe x20 > CritGlasses x10 > ChainLightning x3 > Missile x3 > PrimarySkillShuriken x5 > HealOnCrit x2 > ExplodeOnDeath x2
 Path: CritDamage x2 > Behemoth x1 > Clover x1 > AlienHead x1 > BleedOnHitAndExplode x1
 # Commando trifft sehr oft -> On-Hit-Items sind hier am stärksten
@@ -258,7 +258,7 @@ PrimarySkillShuriken | 2 | Commando spammt den Primärangriff. | Commando spams 
 CritDamage       | 2 | Commando + Glasses + Laser Scope = Crit-Build. | Commando + Glasses + Scope = crit build.
 
 [HuntressBody]
-Path: CritGlasses x10 > Hoof x6 > Syringe x10 > Bear x6 > Missile x2 > Medkit x4 > Tooth x4
+Path: CritGlasses x10 > Hoof x6 > Syringe x10 > Bear x6 > Missile x2 > ChainLightning x1 > ExplodeOnDeath x1
 Path: CritGlasses x10 > Syringe x20 > HealOnCrit x3 > UtilitySkillMagazine x1 > ChainLightning x3 > AttackSpeedOnCrit x2 > Missile x2 > ExplodeOnDeath x2
 Path: CritDamage x2 > Behemoth x1 > Clover x1 > Missile x5 > FireRing x2 > IceRing x2 > BleedOnHitAndExplode x1 > AlienHead x2
 CritGlasses      | 2 | Huntress baut auf Crit – Brille zuerst. | Huntress builds on crit – glasses first.
@@ -270,7 +270,7 @@ Hoof             | 2 | Schießt im Laufen – Tempo ist Schaden. | Shoots while 
 LunarPrimaryReplacement | -1 | Ersetzt ihren Auto-Aim-Primärangriff. | Replaces her auto-aim primary.
 
 [Bandit2Body]
-Path: Crowbar x6 > Syringe x6 > Bear x6 > Hoof x4 > BossDamageBonus x4 > Medkit x4 > Tooth x4
+Path: Crowbar x6 > Syringe x6 > Bear x6 > Hoof x4 > BossDamageBonus x4 > Missile x1 > ChainLightning x1
 Path: Crowbar x10 > BossDamageBonus x6 > ExecuteLowHealthElite x2 > Bandolier x3 > ChainLightning x2 > Missile x2 > ExplodeOnDeath x2 > HealOnCrit x2
 Path: CritDamage x2 > AlienHead x1 > Clover x1 > BleedOnHitAndExplode x1 > Behemoth x2
 # Bandit: Backstabs sind immer Crits, Resets durch Kills
@@ -279,7 +279,7 @@ Crowbar          | 2 | Großer erster Treffer + Crowbar = One-Shots. | Big first
 BossDamageBonus  | 2 | Hohe Einzeltreffer auf Bosse. | Big single hits on bosses.
 
 [MageBody]
-Path: Syringe x6 > Bear x6 > Feather x2 > IgniteOnKill x2 > Hoof x4 > Medkit x4 > Tooth x4
+Path: Syringe x6 > Bear x6 > Feather x2 > IgniteOnKill x2 > Hoof x4 > Missile x1 > ChainLightning x1
 Path: Syringe x10 > StrengthenBurn x3 > FireRing x3 > IceRing x2 > Feather x3 > Missile x2 > ExplodeOnDeath x2 > ChainLightning x2
 Path: AlienHead x1 > Behemoth x1 > Clover x1 > UtilitySkillMagazine x1 > MeteorAttackOnHighDamage x1 > BleedOnHitAndExplode x1
 # Artificer: Feuer + Cooldowns
@@ -291,7 +291,7 @@ Feather          | 2 | Mehr Luftkontrolle. | More air control.
 Molotov          | 2 | Noch mehr Feuer. | Even more fire.
 
 [MercBody]
-Path: Syringe x10 > CritGlasses x10 > Bear x6 > Feather x2 > Hoof x4 > Medkit x4 > Tooth x4
+Path: Syringe x10 > CritGlasses x10 > Bear x6 > Feather x2 > Hoof x4 > Missile x1 > ChainLightning x1
 Path: Syringe x20 > CritGlasses x10 > AttackSpeedOnCrit x3 > HealOnCrit x3 > Seed x3 > Feather x3 > Missile x2 > ExplodeOnDeath x2
 Path: ChainLightning x3 > Behemoth x1 > Clover x1 > AlienHead x1 > BleedOnHitAndExplode x1
 CritGlasses      | 2 | Crits treiben Predatory Instincts und Scythe an. | Crits fuel Predatory Instincts and Scythe.
@@ -302,7 +302,7 @@ Feather          | 2 | Merc-Kombos nutzen Sprünge. | Merc combos use jumps.
 Seed             | 2 | Viele Treffer = viel Heilung. | Many hits = lots of healing.
 
 [ToolbotBody]
-Path: Syringe x10 > CritGlasses x6 > Bear x6 > EquipmentMagazine x2 > Hoof x4 > Medkit x4 > Tooth x4
+Path: Syringe x10 > CritGlasses x6 > Bear x6 > EquipmentMagazine x2 > Hoof x4 > Missile x1 > ChainLightning x1
 Path: Syringe x20 > CritGlasses x10 > Bear x10 > EquipmentMagazine x5 > ChainLightning x3 > Missile x2 > ExplodeOnDeath x2 > HealOnCrit x2
 Path: Behemoth x1 > Clover x1 > AlienHead x1 > Missile x5 > BleedOnHitAndExplode x1
 # MUL-T: zwei Equipment-Slots, Nailgun trifft sehr oft
@@ -310,7 +310,7 @@ EquipmentMagazine| 2 | Fuel Cell: mehr Equipment-Ladungen, MUL-T hat zwei Slots.
 PrimarySkillShuriken | 1 | Primär wird viel genutzt. | Primary is used a lot.
 
 [EngiBody]
-Path: Crowbar x6 > Syringe x10 > StickyBomb x4 > Mushroom x2 > Bear x6 > Medkit x4 > Tooth x4
+Path: Crowbar x6 > Syringe x10 > StickyBomb x4 > Mushroom x2 > Bear x6 > Missile x1 > ChainLightning x1
 Path: Crowbar x10 > Syringe x20 > Mushroom x4 > ChainLightning x3 > Missile x3 > ExplodeOnDeath x2 > HealOnCrit x2
 Path: Behemoth x1 > Clover x1 > MoreMissile x1 > Missile x6 > BleedOnHitAndExplode x1 > AlienHead x2
 # Engineer: Türme erben deine Items und stehen still
@@ -334,7 +334,7 @@ Infusion         | 2 | Mehr Max-HP = mehr Ressource. | More max HP = more resour
 RepeatHeal       | 0 | |
 
 [LoaderBody]
-Path: Crowbar x6 > Bear x6 > Feather x2 > Syringe x6 > Hoof x4 > Medkit x4 > Tooth x4
+Path: Crowbar x6 > Bear x6 > Feather x2 > Syringe x6 > Hoof x4 > Missile x1 > ChainLightning x1
 Path: Crowbar x10 > Bear x10 > FireRing x3 > IceRing x3 > Feather x3 > ChainLightning x2 > Missile x2 > ExplodeOnDeath x2
 Path: MeteorAttackOnHighDamage x1 > AlienHead x1 > Behemoth x1 > Clover x1 > BleedOnHitAndExplode x1
 # Loader: riesige Einzeltreffer
@@ -352,7 +352,7 @@ Seed             | 2 | Viele Nahkampf-Treffer = Heilung. | Many melee hits = hea
 UtilitySkillMagazine | 2 | Mehr Caustic Leaps. | More leaps.
 
 [CaptainBody]
-Path: Crowbar x6 > CritGlasses x6 > Bear x6 > Syringe x6 > Hoof x4 > Medkit x4 > Tooth x4
+Path: Crowbar x6 > CritGlasses x6 > Bear x6 > Syringe x6 > Hoof x4 > Missile x1 > ChainLightning x1
 Path: Crowbar x10 > CritGlasses x10 > Bear x10 > FireRing x3 > IceRing x3 > Missile x2 > ExplodeOnDeath x2 > ChainLightning x2
 Path: Behemoth x1 > Clover x1 > AlienHead x1 > EquipmentMagazine x3 > BleedOnHitAndExplode x1
 # Captain: aufgeladener Shotgun-Schuss
@@ -361,7 +361,7 @@ FireRing         | 2 | Voll geladene Schüsse lösen Kjaro aus. | Full charges t
 IceRing          | 2 | Voll geladene Schüsse lösen Runald aus. | Full charges trigger Runald.
 
 [RailgunnerBody]
-Path: Crowbar x6 > Bear x6 > BossDamageBonus x4 > Hoof x4 > Syringe x4 > Medkit x4 > Tooth x4
+Path: Crowbar x6 > Bear x6 > BossDamageBonus x4 > Hoof x4 > Syringe x4 > Missile x1 > ChainLightning x1
 Path: Crowbar x10 > Bear x10 > BossDamageBonus x6 > FireRing x3 > IceRing x2 > MeteorAttackOnHighDamage x1 > Missile x2 > ExplodeOnDeath x2
 Path: CritDamage x2 > AlienHead x1 > Clover x1 > Behemoth x1 > BleedOnHitAndExplode x1
 # Railgunner: Schwachstellen = immer Crit, Crit-Chance wird zu Crit-Schaden
@@ -376,7 +376,7 @@ Syringe          | 1 | Weniger wert, sie trifft selten. | Less value, she hits r
 LunarPrimaryReplacement | -1 | Ersetzt ihren Primärangriff. | Replaces her primary.
 
 [VoidSurvivorBody]
-Path: Syringe x10 > Bear x6 > Hoof x4 > BleedOnHitVoid x2 > Feather x2 > Medkit x4 > Tooth x4
+Path: Syringe x10 > Bear x6 > Hoof x4 > BleedOnHitVoid x2 > Feather x2 > Missile x1 > ChainLightning x1
 Path: Syringe x20 > Bear x10 > BleedOnHitVoid x5 > ChainLightningVoid x3 > ExplodeOnDeathVoid x2 > Missile x2 > ExplodeOnDeath x2
 Path: Clover x1 > AlienHead x1 > Behemoth x1 > MushroomVoid x2 > BleedOnHitAndExplode x1
 # Void Fiend: Void-Items und Corruption
@@ -384,7 +384,7 @@ ChainLightningVoid | 2 | Polylute passt gut zu Void Fiend. | Polylute suits Void
 BleedOnHitVoid   | 2 | Collapse im Nahkampf. | Collapse in melee.
 
 [SeekerBody]
-Path: Syringe x10 > Bear x6 > SecondarySkillMagazine x2 > SprintArmor x2 > Hoof x4 > Medkit x4 > Tooth x4
+Path: Syringe x10 > Bear x6 > SecondarySkillMagazine x2 > SprintArmor x2 > Hoof x4 > Missile x1 > ChainLightning x1
 Path: Syringe x20 > CritGlasses x10 > SecondarySkillMagazine x6 > FireRing x3 > IceRing x2 > SprintWisp x1 > Missile x2 > ExplodeOnDeath x2
 Path: CritGlasses x10 > AlienHead x2 > FlatHealth x4 > Clover x1 > Behemoth x1 > BleedOnHitAndExplode x1
 # Seeker: Spirit-Punch-Kombos, Unseen Hand und Meditate als große Treffer
@@ -400,7 +400,7 @@ UtilitySkillMagazine | 1 | Mehr Sojourn-Ladungen. | More Sojourn charges.
 MeteorAttackOnHighDamage | 1 | Große Skill-Treffer lösen Runic Lens aus. | Big skill hits trigger Runic Lens.
 
 [DroneTechBody]
-Path: Syringe x6 > Bear x6 > Hoof x4 > DroneWeapons x1 > CritGlasses x6 > Medkit x4 > Tooth x4
+Path: Syringe x6 > Bear x6 > Hoof x4 > DroneWeapons x1 > CritGlasses x6 > Missile x1 > ChainLightning x1
 Path: Syringe x10 > Bear x10 > DroneWeapons x2 > DronesDropDynamite x3 > Missile x2 > ExplodeOnDeath x2 > ChainLightning x2
 Path: Clover x1 > AlienHead x1 > Behemoth x1 > BleedOnHitAndExplode x1
 # Operator: kämpft mit Drohnen

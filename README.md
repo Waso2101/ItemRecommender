@@ -32,10 +32,12 @@ Counts are totals, so a later page can raise an earlier target.
 
 Page 1 is a fixed start from the file. After that the pages are **live**: the best items for your survivor right now, re-ranked with your current synergies. When you reach an item's target, the next best item moves in. Items from the survivor's later `Path:` lines are preferred (toggle: `LivePages`).
 
+**Skipping:** press **F7** to skip the highlighted item until the next stage ("maybe later"), **F8** to skip the whole page (page 1: for the run; live page: its items until the next stage). Keys are configurable (`SkipItemKey`, `SkipPageKey`).
+
 ## Other details
 - When the Command menu opens, the cursor sits on an item and the game shows its description right away. The mod hides it until you move the mouse.
 - Holding the void version of an item (e.g. Safer Spaces) makes the normal item a good pick, since it becomes another void stack.
 - Ratings follow the community consensus tier lists (S = core, A = good, rest neutral; only items that actively hurt you get an X), with survivor-specific overrides.
 
 ## Config
-`BepInEx/config/Waso.ItemRecommender.cfg`: `Enabled`, `ShowGoodTier`, `ShowLegend`, `Language` (auto/de/en), `ShowBuildPath`, `LivePages`, `PathSeparator`, `HideTooltipUntilMouseMoves` (hides the item description that pops up because the cursor starts on an item, until you move the mouse).
+`BepInEx/config/Waso.ItemRecommender.cfg`: `Enabled`, `ShowGoodTier`, `ShowLegend`, `Language` (auto/de/en), `ShowBuildPath`, `LivePages`, `SkipItemKey`, `SkipPageKey`, `ShowSkipHint`, `PathSeparator`, `HideTooltipUntilMouseMoves` (hides the item description that pops up because the cursor starts on an item, until you move the mouse).

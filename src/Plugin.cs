@@ -18,7 +18,7 @@ namespace ItemRecommender
         public const string Guid = "Waso.ItemRecommender";
         const string OldGuid = "clxru.ItemRecommender"; // until 0.5.0
         public const string Name = "ItemRecommender";
-        public const string Version = "0.5.1";
+        public const string Version = "0.6.0";
 
         internal static Plugin Instance;
         internal static BepInEx.Logging.ManualLogSource Log;
@@ -31,6 +31,9 @@ namespace ItemRecommender
         internal static ConfigEntry<bool> ShowBuildPath;
         internal static ConfigEntry<string> PathSeparator;
         internal static ConfigEntry<bool> LivePages;
+        internal static ConfigEntry<KeyboardShortcut> SkipItemKey;
+        internal static ConfigEntry<KeyboardShortcut> SkipPageKey;
+        internal static ConfigEntry<bool> ShowSkipHint;
         float nextHudCheck;
 
         static readonly HashSet<string> loggedBodies = new HashSet<string>();
@@ -63,6 +66,11 @@ namespace ItemRecommender
                 "Show the survivor's build path (the 'Path:' lines in the build file) under the objectives.");
             LivePages = Config.Bind("General", "LivePages", true,
                 "After page 1 of the build path, show live pages: the best items right now from the ratings and your current synergies.");
+            SkipItemKey = Config.Bind("Build path", "SkipItemKey", new KeyboardShortcut(KeyCode.F7),
+                "Skip the highlighted item of the build path until the next stage.");
+            SkipPageKey = Config.Bind("Build path", "SkipPageKey", new KeyboardShortcut(KeyCode.F8),
+                "Skip the whole page: page 1 for this run, live items until the next stage.");
+            ShowSkipHint = Config.Bind("Build path", "ShowSkipHint", true, "Show the hotkey hint under the build path.");
             PathSeparator = Config.Bind("General", "PathSeparator", ">", "Symbol drawn between the steps of the build path.");
 
             // The editable copy lives in BepInEx/config so mod updates don't overwrite your changes.
