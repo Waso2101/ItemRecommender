@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1
+- Plugin ID is now Waso.ItemRecommender (config file: Waso.ItemRecommender.cfg). Old settings are taken over automatically.
+
 ## 0.5.0
 - Smaller build path icons, more items per page, higher counts
 - Live pages: after page 1, the build path is re-ranked live from ratings + current synergies

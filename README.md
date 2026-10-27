@@ -38,4 +38,4 @@ Page 1 is a fixed start from the file. After that the pages are **live**: the be
 - Ratings follow the community consensus tier lists (S = core, A = good, rest neutral; only items that actively hurt you get an X), with survivor-specific overrides.
 
 ## Config
-`BepInEx/config/clxru.ItemRecommender.cfg`: `Enabled`, `ShowGoodTier`, `ShowLegend`, `Language` (auto/de/en), `ShowBuildPath`, `LivePages`, `PathSeparator`, `HideTooltipUntilMouseMoves` (hides the item description that pops up because the cursor starts on an item, until you move the mouse).
+`BepInEx/config/Waso.ItemRecommender.cfg`: `Enabled`, `ShowGoodTier`, `ShowLegend`, `Language` (auto/de/en), `ShowBuildPath`, `LivePages`, `PathSeparator`, `HideTooltipUntilMouseMoves` (hides the item description that pops up because the cursor starts on an item, until you move the mouse).

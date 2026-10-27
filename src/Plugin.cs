@@ -15,9 +15,10 @@ namespace ItemRecommender
     [BepInPlugin(Guid, Name, Version)]
     public sealed class Plugin : BaseUnityPlugin
     {
-        public const string Guid = "clxru.ItemRecommender";
+        public const string Guid = "Waso.ItemRecommender";
+        const string OldGuid = "clxru.ItemRecommender"; // until 0.5.0
         public const string Name = "ItemRecommender";
-        public const string Version = "0.5.0";
+        public const string Version = "0.5.1";
 
         internal static Plugin Instance;
         internal static BepInEx.Logging.ManualLogSource Log;
@@ -37,6 +38,17 @@ namespace ItemRecommender
         void Awake()
         {
             Instance = this;
+            // Keep settings from versions that used the old ID.
+            try
+            {
+                string oldCfg = Path.Combine(Paths.ConfigPath, OldGuid + ".cfg");
+                if (File.Exists(oldCfg) && !File.Exists(Config.ConfigFilePath))
+                {
+                    File.Copy(oldCfg, Config.ConfigFilePath);
+                    Config.Reload();
+                }
+            }
+            catch (Exception e) { Logger.LogWarning($"Could not take over old config: {e.Message}"); }
             Log = Logger;
             Enabled = Config.Bind("General", "Enabled", true, "Show item recommendations in the Command menu.");
             ShowGoodTier = Config.Bind("General", "ShowGoodTier", true,
