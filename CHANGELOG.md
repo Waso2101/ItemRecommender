@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.0
+- Build analysis: reads your survivor's skills and every item description (also modded ones) and rates items against your build
+  - Death Mark / Noxious Thorn rise with the number of debuff types you apply; new debuff types are pushed while you hold them
+  - Ignition Tank, Sanguine Chalice, Vile Censer only once you have a burn / bleed / stun source
+  - Crit payoff items scale with your actual crit chance; no more crit items at 100%
+  - Single-target survivors (Huntress, Commando, Bandit, …) get area damage pushed; area damage pushes on-kill items
+- Tooltip shows these reasons in green, and what's missing in grey
+- Huntress: area damage (Gasoline, Will-o'-the-wisp, Ukulele, Behemoth) in her plan
+
+## 0.8.1
+- Risk of Options support (optional): change all settings and hotkeys in-game under Settings > Mod Options
+- F5: back to the previous build path page (F8 goes forward again)
+- Skipped items and pages are kept for the whole run and saved, so they survive a game restart
+- Void items: once you hold one, its normal item leaves the path; the void item shows instead and both stacks count together
+
 ## 0.8.0
 - Rarity view (F6): one row white, one row green, best first, each row with defense + healing
 - Pick order for the open Command menu, shown above the legend

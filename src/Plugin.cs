@@ -13,12 +13,13 @@ namespace ItemRecommender
 {
     // Client-side only: nothing is networked, other players don't need the mod.
     [BepInPlugin(Guid, Name, Version)]
+    [BepInDependency(RiskOfOptionsCompat.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "Waso.ItemRecommender";
         const string OldGuid = "clxru.ItemRecommender"; // until 0.5.0
         public const string Name = "ItemRecommender";
-        public const string Version = "0.8.0";
+        public const string Version = "0.9.0";
 
         internal static Plugin Instance;
         internal static BepInEx.Logging.ManualLogSource Log;
@@ -34,6 +35,7 @@ namespace ItemRecommender
         internal static ConfigEntry<string> LatePageFocus;
         internal static ConfigEntry<KeyboardShortcut> SkipItemKey;
         internal static ConfigEntry<KeyboardShortcut> SkipPageKey;
+        internal static ConfigEntry<KeyboardShortcut> BackPageKey;
         internal static ConfigEntry<bool> ShowSkipHint;
         internal static ConfigEntry<KeyboardShortcut> SwitchViewKey;
         internal static ConfigEntry<int> RarityRowSize;
@@ -74,12 +76,15 @@ namespace ItemRecommender
                 new ConfigDescription("What generated pages from page 3 on focus on.",
                     new AcceptableValueList<string>("sustain", "balanced", "damage")));
             SkipItemKey = Config.Bind("Build path", "SkipItemKey", new KeyboardShortcut(KeyCode.F7),
-                "Skip the highlighted item of the build path until the next stage.");
+                "Swap the highlighted item of the build path for another one. Remembered for the whole run.");
             SkipPageKey = Config.Bind("Build path", "SkipPageKey", new KeyboardShortcut(KeyCode.F8),
-                "Skip the whole page: page 1 for this run, live items until the next stage.");
+                "Skip the whole page (remembered for the whole run). While looking at an older page: one page forward.");
+            BackPageKey = Config.Bind("Build path", "BackPageKey", new KeyboardShortcut(KeyCode.F5),
+                "Look at the previous page of the build path. Press it again to go further back.");
             SwitchViewKey = Config.Bind("Build path", "SwitchViewKey", new KeyboardShortcut(KeyCode.F6),
                 "Switch the tile between the build path and the rarity view (one row white, one row green).");
-            RarityRowSize = Config.Bind("Build path", "RarityRowSize", 5, "Items per row in the rarity view (3-8).");
+            RarityRowSize = Config.Bind("Build path", "RarityRowSize", 5,
+                new ConfigDescription("Items per row in the rarity view (3-8).", new AcceptableValueRange<int>(3, 8)));
             ShowMenuOrder = Config.Bind("General", "ShowMenuOrder", true,
                 "Show the pick order for the items in the open Command menu above the legend.");
             ShowSkipHint = Config.Bind("Build path", "ShowSkipHint", true, "Show the hotkey hint under the build path.");
@@ -92,6 +97,12 @@ namespace ItemRecommender
             catch (Exception e) { Logger.LogError($"Could not create {userFile}: {e.Message}"); }
 
             Data = new BuildData(File.Exists(userFile) ? userFile : bundled, Logger);
+            if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(RiskOfOptionsCompat.Guid))
+            {
+                try { RiskOfOptionsCompat.Setup(Path.GetDirectoryName(Info.Location)); }
+                catch (Exception e) { Logger.LogWarning($"Risk of Options setup failed: {e.Message}"); }
+            }
+
             var harmony = new Harmony(Guid);
             harmony.PatchAll(typeof(PickerPatches));
             harmony.PatchAll(typeof(TooltipPatches));
@@ -136,6 +147,10 @@ namespace ItemRecommender
             return Language.currentLanguageName != null &&
                    Language.currentLanguageName.StartsWith("de", StringComparison.OrdinalIgnoreCase);
         }
+
+        // Lets the tile redraw when hotkeys or the hint setting change in-game.
+        internal static string HintSignature() =>
+            $"{ShowSkipHint.Value}{SwitchViewKey.Value}{SkipItemKey.Value}{SkipPageKey.Value}{BackPageKey.Value}";
 
         internal static void LogBodyOnce(string bodyName)
         {
@@ -183,6 +198,7 @@ namespace ItemRecommender
             if (active) { Plugin.Data.ReloadIfChanged(); Plugin.LogBodyOnce(bodyName); }
             bool german = Plugin.German();
             Func<string, int> countOf = name => PlayerCount(body, name);
+            var profile = active ? BuildProfile.Of(body) : null;
 
             int count = Math.Min(buttons.Count, options.Length);
             var advices = new Advice[count];
@@ -192,7 +208,7 @@ namespace ItemRecommender
                 if (!active || !options[i].available) continue;
                 string name = InternalName(PickupCatalog.GetPickupDef(options[i].pickup.pickupIndex));
                 if (name == null) continue;
-                advices[i] = Plugin.Data.Get(bodyName, name, countOf, german);
+                advices[i] = Plugin.Data.Get(bodyName, name, countOf, german, profile);
                 if (advices[i].Tier >= 2 && (best < 0 || advices[i].Score > advices[best].Score)) best = i;
             }
 
@@ -252,7 +268,8 @@ namespace ItemRecommender
                 text = text.Substring(0, text.Length - overlay.AppendedTooltip.Length);
             overlay.AppendedTooltip = null;
 
-            if (advice == null || (advice.Tier == 0 && advice.Warnings.Count == 0 && advice.SynergyReasons.Count == 0))
+            if (advice == null || (advice.Tier == 0 && advice.Warnings.Count == 0 && advice.SynergyReasons.Count == 0 &&
+                                   advice.BuildReasons.Count == 0 && advice.Notes.Count == 0))
             {
                 tip.overrideBodyText = text;
                 return;
@@ -275,6 +292,10 @@ namespace ItemRecommender
             if (!string.IsNullOrEmpty(advice.Reason)) sb.Append("\n").Append(advice.Reason);
             foreach (var r in advice.SynergyReasons)
                 sb.Append("\n<color=#40F2E6>+ ").Append(r).Append("</color>");
+            foreach (var r in advice.BuildReasons)
+                sb.Append("\n<color=#9CF27A>+ ").Append(r).Append("</color>");
+            foreach (var r in advice.Notes)
+                sb.Append("\n<color=#A8A8A8>- ").Append(r).Append("</color>");
 
             overlay.AppendedTooltip = sb.ToString();
             tip.overrideBodyText = text + overlay.AppendedTooltip;

@@ -29,6 +29,7 @@
     <Reference Include="$(Managed)\UnityEngine.TextRenderingModule.dll" Private="false" />
     <Reference Include="$(ProfileDir)\BepInEx\core\BepInEx.dll" Private="false" />
     <Reference Include="$(ProfileDir)\BepInEx\core\0Harmony.dll" Private="false" />
+    <Reference Include="$(ProfileDir)\BepInEx\plugins\Rune580-Risk_Of_Options\RiskOfOptions\RiskOfOptions.dll" Private="false" />
   </ItemGroup>
   <ItemGroup>
     <None Include="builds.txt" CopyToOutputDirectory="PreserveNewest" />

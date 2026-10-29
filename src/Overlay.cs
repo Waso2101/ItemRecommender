@@ -81,7 +81,7 @@ namespace ItemRecommender
             tint.gameObject.SetActive(tier < 0);
             tint.color = new Color(c.r, c.g, c.b, tier == -2 ? 0.28f : 0.18f);
 
-            dot.gameObject.SetActive(advice.SynergyReasons.Count > 0 && tier > 0);
+            dot.gameObject.SetActive((advice.SynergyReasons.Count > 0 || advice.Bonus >= 6) && tier > 0);
             dot.color = Palette.Turquoise;
         }
     }

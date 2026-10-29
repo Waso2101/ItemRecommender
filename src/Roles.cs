@@ -38,7 +38,7 @@ namespace ItemRecommender
             Add('D', 3, "ExecuteLowHealthElite", "AttackSpeedOnCrit"); Add('U', 3, "Bandolier");
             Add('H', 2, "Infusion", "ExtraStatsOnLevelUp"); Add('F', 2, "ShieldBooster"); Add('S', 2, "Seed", "TPHealingNova");
             Add('D', 2, "DeathMark", "WarCryOnMultiKill", "StrengthenBurn", "IncreasePrimaryDamage", "EnergizedOnEquipmentUse");
-            Add('M', 2, "JumpBoost", "SprintOutOfCombat"); Add('U', 2, "SlowOnHit"); Add('P', 2, "KnockBackHitEnemies");
+            Add('M', 2, "JumpBoost", "SprintOutOfCombat"); Add('U', 2, "SlowOnHit"); Add('P', 2, "KnockBackHitEnemies", "TriggerEnemyDebuffs");
             Add('P', 1, "Squid"); Add('F', 1, "Phasing"); Add('M', 0, "MoveSpeedOnKill");
             // red
             Add('U', 4, "Clover"); Add('F', 4, "SharedSuffering");
@@ -64,9 +64,10 @@ namespace ItemRecommender
         public static Info Get(string item, int fileTier) =>
             table.TryGetValue(item, out var i) ? i : new Info { Role = 'D', Consensus = fileTier + 1 };
 
-        /// <summary>Community rating + survivor rating + synergies, minus what you already stack.</summary>
+        /// <summary>Community rating + survivor rating + synergies + build analysis, minus what you already stack.</summary>
         public static int Score(string item, Advice advice, int have) =>
-            Get(item, advice.Tier).Consensus * 10 + advice.Tier * 8 + advice.SynergyReasons.Count * 5 - System.Math.Min(have, 10);
+            Get(item, advice.Tier).Consensus * 10 + advice.Tier * 8 + advice.SynergyReasons.Count * 5 + advice.Bonus
+            - System.Math.Min(have, 10);
 
         static bool Offense(char r) => r == 'D' || r == 'P';
 

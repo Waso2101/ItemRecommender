@@ -52,7 +52,14 @@ namespace ItemRecommender
         List<PathStep> shownSteps;
         string currentItem;
         Run lastRun;
-        Stage lastStage;
+        // Pages you already left, for the back key. back = how many pages you look back (0 = current page).
+        sealed class Snapshot { public string Number; public List<PathStep> Steps; }
+        const int MaxHistory = 50;
+        readonly List<Snapshot> history = new List<Snapshot>();
+        int back;
+        string currentNumber;
+        List<PathStep> currentSteps;
+        string savedState; // last text written to the state file
         bool rarityView; // F6: build path <-> one row per rarity (white, green)
 
         /// <summary>Called once per second; creates the tile once the objective panel exists.</summary>
@@ -190,37 +197,64 @@ namespace ItemRecommender
             bool german = Plugin.German();
             if (lastRun != Run.instance)
             {
+                // Skips and pages are kept for the whole run - also after a game restart (state file).
                 lastRun = Run.instance;
                 skipStart = false;
                 skipped.Clear();
                 genPage = null;
                 genNumber = 1;
+                genBody = null;
                 lastPageItems.Clear();
+                pageBeforeItems.Clear();
+                history.Clear();
+                back = 0;
+                currentNumber = null;
+                currentSteps = null;
+                LoadState(bodyName);
             }
-            if (lastStage != Stage.instance) { lastStage = Stage.instance; skipped.Clear(); } // "maybe later"
 
             float width = inLayoutGroup && objective && objective.rect.width > 100f ? objective.rect.width : DefaultWidth;
             if (rarityView) { RefreshRarity(body, bodyName, german, width); return; }
 
             List<PathStep> steps = null;
-            string label = german ? "Build-Pfad" : "Build path";
             var start = pages[0].FindAll(st => !skipped.Contains(st.Item));
             bool startDone = skipStart || Complete(body, start);
             onStartPage = !startDone;
             if (!startDone || !Plugin.LivePages.Value) steps = startDone ? pages[pages.Count - 1] : start;
             else steps = GeneratedPage(body, bodyName, german, pages);
+            string number = "";
             if (steps == null) steps = pages[pages.Count - 1];
-            else if (startDone && Plugin.LivePages.Value) label += $" {genNumber}";
-            else if (!startDone) label += " 1";
+            else if (startDone && Plugin.LivePages.Value) number = genNumber.ToString();
+            else if (!startDone) number = "1";
+
+            // Remember the page you leave, so the back key can show it again.
+            if (currentNumber != null && currentNumber != number)
+            {
+                history.Add(new Snapshot { Number = currentNumber, Steps = currentSteps });
+                if (history.Count > MaxHistory) history.RemoveAt(0);
+            }
+            currentNumber = number;
+            currentSteps = steps.ConvertAll(st => new PathStep { Item = st.Item, Target = st.Target, Optional = st.Optional });
+            SaveState(bodyName);
+
+            string label = PageLabel(german, number);
+            if (back > history.Count) back = history.Count;
+            if (back > 0)
+            {
+                var snap = history[history.Count - back];
+                steps = snap.Steps;
+                label = PageLabel(german, snap.Number) + (german ? " (zurück)" : " (back)");
+            }
+            steps = MapVoid(body, steps);
 
             var counts = new int[steps.Count];
             var sig = new StringBuilder(bodyName).Append(german).Append(Plugin.PathSeparator.Value);
             for (int i = 0; i < steps.Count; i++)
             {
-                counts[i] = PickerPatches.PlayerCount(body, steps[i].Item);
+                counts[i] = PathCount(body, steps[i].Item);
                 sig.Append('|').Append(steps[i].Item).Append(steps[i].Target).Append(':').Append(counts[i]);
             }
-            sig.Append(width).Append('#').Append(label);
+            sig.Append(width).Append('#').Append(label).Append(Plugin.HintSignature());
             if (sig.ToString() == signature) return;
             signature = sig.ToString();
             Rebuild(steps, counts, width, german, label);
@@ -236,12 +270,23 @@ namespace ItemRecommender
                 nextRefresh = 0f;
                 return;
             }
-            if (rarityView || shownSteps == null) return;
+            if (rarityView) return;
             bool changed = false;
-            if (Plugin.SkipItemKey.Value.IsDown() && currentItem != null)
+            if (Plugin.BackPageKey.Value.IsDown())
             {
-                // Swap: the item is gone until the next stage, the free slot gets refilled.
+                if (back < history.Count) { back++; changed = true; }
+            }
+            else if (back > 0)
+            {
+                // Looking at an older page: the skip-page key goes forward again, swapping is off.
+                if (Plugin.SkipPageKey.Value.IsDown()) { back--; changed = true; }
+            }
+            else if (shownSteps == null) return;
+            else if (Plugin.SkipItemKey.Value.IsDown() && currentItem != null)
+            {
+                // Swap: the item is gone for this run, the free slot gets refilled.
                 skipped.Add(currentItem);
+                foreach (var n in NormalsOf(currentItem)) skipped.Add(n); // shown as its void version
                 if (genPage != null) genPage.RemoveAll(st => skipped.Contains(st.Item));
                 changed = true;
             }
@@ -263,7 +308,7 @@ namespace ItemRecommender
             // Optional (red/boss) steps don't block - unless the page has nothing else.
             bool onlyOptional = steps.TrueForAll(st => st.Optional);
             foreach (var st in steps)
-                if ((onlyOptional || !st.Optional) && PickerPatches.PlayerCount(body, st.Item) < st.Target) return false;
+                if ((onlyOptional || !st.Optional) && PathCount(body, st.Item) < st.Target) return false;
             return true;
         }
 
@@ -277,7 +322,11 @@ namespace ItemRecommender
         /// </summary>
         List<PathStep> GeneratedPage(CharacterBody body, string bodyName, bool german, List<List<PathStep>> filePages)
         {
-            if (genBody != bodyName) { genPage = null; genNumber = 1; genBody = bodyName; lastPageItems.Clear(); pageBeforeItems.Clear(); }
+            if (genBody != bodyName)
+            {
+                if (genBody != null) { history.Clear(); back = 0; } // other survivor mid-run
+                genPage = null; genNumber = 1; genBody = bodyName; lastPageItems.Clear(); pageBeforeItems.Clear();
+            }
             if (genPage != null && genPage.Count > 0 && Complete(body, genPage))
             {
                 pageBeforeItems.Clear();
@@ -290,6 +339,7 @@ namespace ItemRecommender
             if (genPage == null) { genPage = new List<PathStep>(); genNumber++; }
 
             System.Func<string, int> countOf = n => PickerPatches.PlayerCount(body, n);
+            var profile = BuildProfile.Of(body);
             var planned = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             for (int pg = 1; pg < filePages.Count; pg++) foreach (var st in filePages[pg]) planned.Add(st.Item);
             var onPage = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
@@ -306,7 +356,8 @@ namespace ItemRecommender
                 var def = ItemCatalog.GetItemDef(ii);
                 if (!def || def.tier == ItemTier.NoTier || def.tier == ItemTier.Lunar || def.hidden) continue;
                 if (Run.instance && !Run.instance.IsItemAvailable(ii)) continue;
-                var advice = Plugin.Data.Get(bodyName, name, countOf, german);
+                if (HeldVoid(body, name) != null) continue; // turns into its void version - that one counts
+                var advice = Plugin.Data.Get(bodyName, name, countOf, german, profile);
                 if (advice.Tier < 0) continue; // bad for this survivor or would convert your items
                 int have = countOf(name);
                 int cap = Roles.Cap(name);
@@ -317,7 +368,7 @@ namespace ItemRecommender
                 if (rare) continue; // red/boss items rarely drop - not part of the path
                 int add = def.tier == ItemTier.Tier2 || def.tier == ItemTier.VoidTier2 ? 3 : 5;
                 // Rare items rarely drop, so they only get in when they are clearly better.
-                int score = info.Consensus * 10 + advice.Tier * 8 + advice.SynergyReasons.Count * 5
+                int score = info.Consensus * 10 + advice.Tier * 8 + advice.SynergyReasons.Count * 5 + advice.Bonus
                           + (planned.Contains(name) ? 6 : 0) - Mathf.Min(have, 10)
                           - (rare ? 15 : 0)
                           - (lastPageItems.Contains(name) ? 20 : pageBeforeItems.Contains(name) ? 10 : 0);
@@ -383,6 +434,7 @@ namespace ItemRecommender
             shownSteps = null;
             currentItem = null;
             System.Func<string, int> countOf = n => PickerPatches.PlayerCount(body, n);
+            var profile = BuildProfile.Of(body);
             var names = new HashSet<string>(Plugin.Data.CandidateItems(bodyName), System.StringComparer.OrdinalIgnoreCase);
             names.UnionWith(Roles.Items);
             var white = new List<KeyValuePair<int, string>>();
@@ -394,7 +446,8 @@ namespace ItemRecommender
                 var def = ItemCatalog.GetItemDef(ii);
                 if (!def || def.hidden || (def.tier != ItemTier.Tier1 && def.tier != ItemTier.Tier2)) continue;
                 if (Run.instance && !Run.instance.IsItemAvailable(ii)) continue;
-                var advice = Plugin.Data.Get(bodyName, name, countOf, german);
+                if (HeldVoid(body, name) != null) continue;
+                var advice = Plugin.Data.Get(bodyName, name, countOf, german, profile);
                 if (advice.Tier < 0) continue;
                 int have = countOf(name);
                 if (have >= Roles.Cap(name)) continue;
@@ -410,7 +463,7 @@ namespace ItemRecommender
                 Roles.TopMixed(green, kv => kv.Value, n, n - 3).ConvertAll(kv => kv.Value),
             };
 
-            var sig = new StringBuilder("rarity").Append(bodyName).Append(german).Append(width);
+            var sig = new StringBuilder("rarity").Append(bodyName).Append(german).Append(width).Append(Plugin.HintSignature());
             foreach (var r in rows) foreach (var it in r) sig.Append('|').Append(it).Append(countOf(it));
             if (sig.ToString() == signature) return;
             signature = sig.ToString();
@@ -476,6 +529,144 @@ namespace ItemRecommender
             if (!voidPairs.TryGetValue(a, out var set))
                 voidPairs[a] = set = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             set.Add(b);
+        }
+
+        static string PageLabel(bool german, string number) =>
+            (german ? "Build-Pfad" : "Build path") + (string.IsNullOrEmpty(number) ? "" : " " + number);
+
+        // ---- Void items ----
+        // Once you hold a void item, its normal item turns into it on pickup. So the path shows the
+        // void item instead, and both stacks count together.
+        static Dictionary<string, string> voidOf;          // normal -> void
+        static Dictionary<string, List<string>> normalsOf; // void -> normals
+        static void EnsureVoidMaps()
+        {
+            if (voidOf != null) return;
+            voidOf = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+            normalsOf = new Dictionary<string, List<string>>(System.StringComparer.OrdinalIgnoreCase);
+            if (!DLC1Content.ItemRelationshipTypes.ContagiousItem) return;
+            foreach (var pair in ItemCatalog.GetItemPairsForRelationship(DLC1Content.ItemRelationshipTypes.ContagiousItem))
+            {
+                if (!pair.itemDef1 || !pair.itemDef2) continue;
+                voidOf[pair.itemDef1.name] = pair.itemDef2.name;
+                if (!normalsOf.TryGetValue(pair.itemDef2.name, out var list))
+                    normalsOf[pair.itemDef2.name] = list = new List<string>();
+                list.Add(pair.itemDef1.name);
+            }
+        }
+
+        static readonly List<string> NoNames = new List<string>();
+        static List<string> NormalsOf(string item)
+        {
+            EnsureVoidMaps();
+            return item != null && normalsOf.TryGetValue(item, out var list) ? list : NoNames;
+        }
+
+        /// <summary>The void version of this item if you hold it, else null.</summary>
+        static string HeldVoid(CharacterBody body, string item)
+        {
+            EnsureVoidMaps();
+            return voidOf.TryGetValue(item, out var v) && PickerPatches.PlayerCount(body, v) > 0 ? v : null;
+        }
+
+        /// <summary>Item count for the path: normal + void stacks together once the void item is held.</summary>
+        static int PathCount(CharacterBody body, string item)
+        {
+            int c = PickerPatches.PlayerCount(body, item);
+            string v = HeldVoid(body, item);
+            if (v != null) return c + PickerPatches.PlayerCount(body, v);
+            if (c > 0) foreach (var n in NormalsOf(item)) c += PickerPatches.PlayerCount(body, n);
+            return c;
+        }
+
+        /// <summary>Shows normal items as their void version once you hold it (merging duplicates).</summary>
+        static List<PathStep> MapVoid(CharacterBody body, List<PathStep> steps)
+        {
+            var result = new List<PathStep>(steps.Count);
+            foreach (var st in steps)
+            {
+                string item = HeldVoid(body, st.Item) ?? st.Item;
+                var same = result.Find(r => string.Equals(r.Item, item, System.StringComparison.OrdinalIgnoreCase));
+                if (same != null) { same.Target = Mathf.Max(same.Target, st.Target); continue; }
+                result.Add(new PathStep { Item = item, Target = st.Target, Optional = st.Optional });
+            }
+            return result;
+        }
+
+        // ---- State file: skips and pages survive a game restart (e.g. with ProperSave) ----
+        static string StatePath => System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "ItemRecommender.state.txt");
+
+        static string StepsText(List<PathStep> steps) =>
+            steps == null ? "" : string.Join(",", steps.ConvertAll(st => $"{st.Item}:{st.Target}:{(st.Optional ? 1 : 0)}"));
+
+        static List<PathStep> ParseSteps(string text)
+        {
+            var list = new List<PathStep>();
+            foreach (var part in text.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries))
+            {
+                var f = part.Split(':');
+                if (f.Length < 3 || !int.TryParse(f[1], out int target)) continue;
+                list.Add(new PathStep { Item = f[0], Target = target, Optional = f[2] == "1" });
+            }
+            return list;
+        }
+
+        void SaveState(string bodyName)
+        {
+            if (!Run.instance) return;
+            var sb = new StringBuilder();
+            sb.Append("seed=").Append(Run.instance.seed).Append('\n');
+            sb.Append("body=").Append(bodyName).Append('\n');
+            sb.Append("skipStart=").Append(skipStart ? 1 : 0).Append('\n');
+            sb.Append("gen=").Append(genNumber).Append('\n');
+            sb.Append("skipped=").Append(string.Join(",", skipped)).Append('\n');
+            sb.Append("last=").Append(string.Join(",", lastPageItems)).Append('\n');
+            sb.Append("before=").Append(string.Join(",", pageBeforeItems)).Append('\n');
+            if (genPage != null) sb.Append("page=").Append(StepsText(genPage)).Append('\n');
+            if (currentNumber != null) sb.Append("cur=").Append(currentNumber).Append('|').Append(StepsText(currentSteps)).Append('\n');
+            foreach (var h in history) sb.Append("hist=").Append(h.Number).Append('|').Append(StepsText(h.Steps)).Append('\n');
+            string text = sb.ToString();
+            if (text == savedState) return;
+            savedState = text;
+            try { System.IO.File.WriteAllText(StatePath, text); }
+            catch (System.Exception e) { Plugin.Log.LogWarning($"Could not save build path state: {e.Message}"); }
+        }
+
+        void LoadState(string bodyName)
+        {
+            try
+            {
+                if (!Run.instance || !System.IO.File.Exists(StatePath)) return;
+                var kv = new List<KeyValuePair<string, string>>();
+                foreach (var line in System.IO.File.ReadAllLines(StatePath))
+                {
+                    int eq = line.IndexOf('=');
+                    if (eq > 0) kv.Add(new KeyValuePair<string, string>(line.Substring(0, eq), line.Substring(eq + 1)));
+                }
+                string Get(string key) { foreach (var p in kv) if (p.Key == key) return p.Value; return null; }
+                if (Get("seed") != Run.instance.seed.ToString() || Get("body") != bodyName) return;
+
+                System.Func<string, string[]> names = v => (v ?? "").Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries);
+                genBody = bodyName;
+                skipStart = Get("skipStart") == "1";
+                if (int.TryParse(Get("gen"), out int g)) genNumber = g;
+                skipped.UnionWith(names(Get("skipped")));
+                lastPageItems.UnionWith(names(Get("last")));
+                pageBeforeItems.UnionWith(names(Get("before")));
+                string page = Get("page");
+                if (page != null) genPage = ParseSteps(page);
+                foreach (var p in kv)
+                {
+                    if (p.Key != "hist" && p.Key != "cur") continue;
+                    int bar = p.Value.IndexOf('|');
+                    if (bar < 0) continue;
+                    var snap = new Snapshot { Number = p.Value.Substring(0, bar), Steps = ParseSteps(p.Value.Substring(bar + 1)) };
+                    if (p.Key == "hist") history.Add(snap);
+                    else { currentNumber = snap.Number; currentSteps = snap.Steps; }
+                }
+                Plugin.Log.LogInfo($"Build path state restored: page {currentNumber}, {skipped.Count} skipped, {history.Count} older pages");
+            }
+            catch (System.Exception e) { Plugin.Log.LogWarning($"Could not read build path state: {e.Message}"); }
         }
 
         sealed class Cand
@@ -559,8 +750,8 @@ namespace ItemRecommender
                 hint.text = rarityView
                     ? (german ? $"{view}: Build-Pfad" : $"{view}: build path")
                     : german
-                        ? $"{view}: Seltenheit · {Plugin.SkipItemKey.Value}: tauschen · {Plugin.SkipPageKey.Value}: Seite"
-                        : $"{view}: rarity · {Plugin.SkipItemKey.Value}: swap · {Plugin.SkipPageKey.Value}: page";
+                        ? $"{view}: Seltenheit · {Plugin.SkipItemKey.Value}: tauschen · {Plugin.BackPageKey.Value}/{Plugin.SkipPageKey.Value}: Seite zurück/vor"
+                        : $"{view}: rarity · {Plugin.SkipItemKey.Value}: swap · {Plugin.BackPageKey.Value}/{Plugin.SkipPageKey.Value}: page back/next";
                 Ui.Fixed(hint.rectTransform, new Vector2(Pad, -height + Pad - 2f), new Vector2(width - Pad * 2, 12f));
                 height += 12f;
             }

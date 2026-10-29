@@ -31,7 +31,13 @@ namespace ItemRecommender
         public string Reason;
         public readonly List<string> SynergyReasons = new List<string>();
         public readonly List<string> Warnings = new List<string>();
-        public int Score => Tier * 10 + SynergyReasons.Count;
+        // From the build analysis (skills + held items + item descriptions)
+        public readonly List<string> BuildReasons = new List<string>();
+        public readonly List<string> Notes = new List<string>();
+        public int Bonus;
+        // Items named by an explicit [Synergy] rule that fired (the analysis doesn't repeat them)
+        public readonly HashSet<string> RuleHaves = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        public int Score => Tier * 10 + SynergyReasons.Count + Bonus / 4;
     }
 
     /// <summary>Parses builds.txt and answers "how good is item X for survivor Y right now".</summary>
@@ -224,7 +230,7 @@ namespace ItemRecommender
 
         int TierOf(string bodyName, string itemName) => Lookup(bodyName, itemName)?.Tier ?? 0;
 
-        public Advice Get(string bodyName, string itemName, Func<string, int> countOf, bool german)
+        public Advice Get(string bodyName, string itemName, Func<string, int> countOf, bool german, BuildProfile profile = null)
         {
             var advice = new Advice();
             var entry = Lookup(bodyName, itemName);
@@ -237,14 +243,23 @@ namespace ItemRecommender
                 if (!s.Want.Equals(itemName, StringComparison.OrdinalIgnoreCase)) continue;
                 if (countOf(s.Have) <= 0) continue;
                 string line = $"{DisplayName(s.Have)}: {(german ? s.De : s.En)}";
-                if (s.Kind > 0) advice.SynergyReasons.Add(line);
+                if (s.Kind > 0) { advice.SynergyReasons.Add(line); advice.RuleHaves.Add(s.Have); }
                 else { advice.Warnings.Add(line); worst = Math.Min(worst, s.Kind); }
             }
 
             worst = Math.Min(worst, VoidWarnings(bodyName, itemName, tier, countOf, german, advice, out int floor));
 
-            if (advice.SynergyReasons.Count > 0 && tier >= 0)
-                tier = Math.Min(MaxTier, tier + 1);
+            // Build analysis: how the item fits your survivor's skills and what you already hold.
+            try { profile?.Apply(itemName, advice, german); }
+            catch (Exception e) { log.LogWarning($"Build analysis failed for {itemName}: {e.Message}"); }
+
+            if (tier >= 0)
+            {
+                int bumps = (advice.SynergyReasons.Count > 0 ? 1 : 0) + (advice.Bonus >= 12 ? 1 : 0);
+                tier = Math.Min(MaxTier, tier + bumps);
+                if (tier == 0 && advice.Bonus >= 6) tier = 1;
+                if (tier > 0 && advice.Bonus <= -10) tier--;
+            }
             tier = Math.Max(tier, floor);
             if (worst < 0)
                 tier = Math.Min(tier, worst);

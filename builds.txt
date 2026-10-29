@@ -1,4 +1,4 @@
-#@version 11
+#@version 12
 # ============================================================================
 #  ItemRecommender – Item-Empfehlungen / item recommendations
 #  Die Datei wird beim Öffnen jedes Command-Menüs neu eingelesen, wenn sie sich
@@ -89,7 +89,7 @@ ExplodeOnDeath   | 2 | Will-o'-the-wisp: Gegner explodieren beim Tod und reißen
 FireRing         | 1 | Kjaro's Band: Treffer über 400% Schaden lösen einen Feuer-Tornado aus (Cooldown). Stark für Charaktere mit großen Skill-Treffern. | Hits over 400% damage trigger a fire tornado (with cooldown). Strong for survivors with big skill hits.
 IceRing          | 1 | Runald's Band: Treffer über 400% Schaden lösen eine Eisexplosion aus, die verlangsamt. Zusammen mit Kjaro's sehr stark. | Hits over 400% damage trigger a slowing ice blast. Very strong together with Kjaro's.
 PrimarySkillShuriken | 1 | Shuriken: dein Primärangriff wirft zusätzlich Shuriken. Gut für Charaktere, die viel Primär nutzen (Commando, MUL-T). | Your primary also throws shurikens. Good for survivors who spam their primary (Commando, MUL-T).
-DeathMark        | 0 | Death Mark: Gegner mit vielen Debuffs nehmen mehr Schaden. Braucht viele Debuff-Items, um zu wirken. | Enemies with many debuffs take more damage. Needs lots of debuff items to work.
+DeathMark        | 0 | Death Mark: Gegner mit 4+ verschiedenen Debuffs nehmen 50% mehr Schaden (von allen). Die Mod zählt deine Debuff-Arten aus Skills und Items und empfiehlt es, sobald du genug hast. | Enemies with 4+ different debuffs take 50% more damage from everyone. The mod counts the debuff types from your skills and items and recommends it once you have enough.
 WarCryOnMultiKill | 0 | Berzerker's Pauldron: Multikills geben Angriffs- und Lauftempo. Stark in Gegnergruppen. | Multikills give attack and move speed. Strong in groups.
 MoveSpeedOnKill  | 0 | Hunter's Harpoon: kurz Tempo nach Kills. Community D-Tier – zu kurz, um viel zu bringen. | Short speed boost after kills. Community D-tier – too short to matter much.
 Infusion         | 0 | Infusion: Kills geben dauerhaft Max-HP (mit Obergrenze). Gut früh, skaliert aber nicht weiter. | Kills give permanent max HP (capped). Good early, but stops scaling.
@@ -99,11 +99,11 @@ SprintOutOfCombat | 0 | Red Whip: viel Tempo außerhalb des Kampfs. Schneller lo
 SlowOnHit        | 0 | Chronobauble: Treffer verlangsamen Gegner. Nützliche Kontrolle, aber kein Schaden. | Hits slow enemies. Useful control, but no damage.
 ExecuteLowHealthElite | 1 | Old Guillotine: tötet Elite-Gegner sofort unter einer Lebensgrenze. Elites sind die gefährlichsten Gegner – sehr nützlich. | Instantly kills elites below a health threshold. Elites are the most dangerous enemies – very useful.
 EquipmentMagazine | 2 | Fuel Cell: +1 Equipment-Ladung und kürzerer Cooldown pro Stack. Macht gutes Equipment (Preon, Primordial Cube, Gesture) extrem stark. | +1 equipment charge and shorter cooldown per stack. Makes good equipment (Preon, Primordial Cube, Gesture) extremely strong.
-TriggerEnemyDebuffs | 0 | Noxious Thorn: Debuffs springen beim Kill auf andere Gegner. Nur mit vielen Debuffs gut. | Debuffs spread to other enemies on kill. Only good with lots of debuffs.
+TriggerEnemyDebuffs | 0 | Noxious Thorn: 10% Bluten-Chance, und beim Kill springt ein Drittel aller Debuff-Stacks auf einen Gegner in der Nähe. Je mehr Debuffs (Bluten, Brand, Gift, ...) du verteilst, desto besser. | 10% bleed chance, and on kill a third of every debuff stack jumps to a nearby enemy. The more debuffs (bleed, burn, poison, ...) you apply, the better.
 IncreaseDamageOnMultiKill | 0 | Chronic Expansion: Kills hintereinander erhöhen deinen Schaden. Stark in vollen Stages, verfällt aber, wenn du aufhörst zu töten. | Kills in a row raise your damage. Strong in busy stages, but drops off when you stop killing.
 IncreasePrimaryDamage | 0 | Luminous Shot: der Secondary lädt den nächsten Primär-Schuss auf. Hängt stark vom Charakter ab. | Your secondary charges up your next primary shot. Very survivor-dependent.
-KnockBackHitEnemies | 0 | Breaching Fin: wirft Gegner hoch und macht Bonusschaden. Okay, aber unzuverlässig. | Launches enemies up and deals bonus damage. Okay, but unreliable.
-StrengthenBurn   | 0 | Ignition Tank: Brand macht deutlich mehr Schaden. Nur mit Feuerquellen (Gasoline, Kjaro's, Artificer) gut. | Burn deals much more damage. Only good with fire sources (Gasoline, Kjaro's, Artificer).
+KnockBackHitEnemies | 0 | Breaching Fin: Skill-Treffer schleudern Gegner hoch und betäuben sie; jeder Wurf = +10% Schaden auf sie. Zählt als eigener Debuff für Death Mark. | Skill hits launch and stun enemies; each launch = +10% damage taken. Counts as its own debuff for Death Mark.
+StrengthenBurn   | 0 | Ignition Tank: Brand macht +300% Schaden. Wird automatisch empfohlen, sobald du eine Feuerquelle hast (Gasoline, Kjaro's, Molten Perforator, Artificer, CHEF). | Burn deals +300% damage. Recommended automatically once you have a fire source (Gasoline, Kjaro's, Molten Perforator, Artificer, CHEF).
 JumpBoost        | 0 | Wax Quail: Sprung beim Sprinten schleudert dich weit nach vorne. Mobilität, aber schwer zu kontrollieren. | Jumping while sprinting launches you forward. Mobility, but hard to control.
 SprintArmor      | 1 | Rose Buckler: +30 Rüstung beim Sprinten. Viel Schutz beim Laufen – besonders stark bei Seeker (Sojourn zählt als Sprinten). | +30 armor while sprinting. Lots of protection on the move – especially strong on Seeker (Sojourn counts as sprinting).
 TPHealingNova    | 0 | Lepton Daisy: Heilwellen während des Teleporters. Hilft beim Teleporter, sonst nichts. | Healing pulses during the teleporter event. Helps at the teleporter, nothing else.
@@ -258,8 +258,8 @@ PrimarySkillShuriken | 2 | Commando spammt den Primärangriff. | Commando spams 
 CritDamage       | 2 | Commando + Glasses + Laser Scope = Crit-Build. | Commando + Glasses + Scope = crit build.
 
 [HuntressBody]
-Path: CritGlasses x10 > Hoof x6 > Syringe x10 > Bear x6 > Missile x2 > ChainLightning x1 > ExplodeOnDeath x1
-Path: CritGlasses x10 > Syringe x20 > HealOnCrit x3 > UtilitySkillMagazine x1 > ChainLightning x3 > AttackSpeedOnCrit x2 > Missile x2 > ExplodeOnDeath x2
+Path: CritGlasses x10 > Syringe x6 > Hoof x4 > IgniteOnKill x2 > Bear x6 > ChainLightning x1 > ExplodeOnDeath x1 > Missile x1
+Path: CritGlasses x10 > Syringe x20 > HealOnCrit x3 > ChainLightning x3 > ExplodeOnDeath x2 > AttackSpeedOnCrit x2 > UtilitySkillMagazine x1 > Missile x2
 Path: CritDamage x2 > Behemoth x1 > Clover x1 > Missile x5 > FireRing x2 > IceRing x2 > BleedOnHitAndExplode x1 > AlienHead x2
 CritGlasses      | 2 | Huntress baut auf Crit – Brille zuerst. | Huntress builds on crit – glasses first.
 # Huntress: Crits + Mobilität, schießt im Sprint
@@ -267,6 +267,11 @@ CritDamage       | 2 | Huntress baut stark auf Crit. | Huntress scales hard with
 HealOnCrit       | 2 | Crit-Heilung hält Huntress am Leben. | Crit healing keeps Huntress alive.
 UtilitySkillMagazine | 2 | Mehr Blinks = mehr Überleben. | More blinks = more survival.
 Hoof             | 2 | Schießt im Laufen – Tempo ist Schaden. | Shoots while moving – speed is damage.
+# Ihr Hauptangriff trifft nur ein Ziel -> Flächenschaden über Items
+ChainLightning   | 2 | Ukulele springt zwischen Gegnern – Flächenschaden für ihren Einzelziel-Pfeil. | Ukulele chains between enemies – area damage for her single-target arrow.
+ExplodeOnDeath   | 2 | Wisp-Explosionen räumen die Gruppen, die ihr Pfeil nicht trifft. | Wisp explosions clear the groups her arrow doesn't hit.
+IgniteOnKill     | 2 | Gasoline: jeder Kill zündet die Gruppe an – Flächenschaden früh im Run. | Gasoline: every kill sets the group on fire – early area damage.
+Behemoth         | 2 | Jeder Pfeil explodiert – macht ihren Einzelziel-Angriff zu Flächenschaden. | Every arrow explodes – turns her single-target attack into area damage.
 LunarPrimaryReplacement | -1 | Ersetzt ihren Auto-Aim-Primärangriff. | Replaces her auto-aim primary.
 
 [Bandit2Body]
